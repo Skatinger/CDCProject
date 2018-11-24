@@ -10,7 +10,8 @@
 -author("alex, jonas").
 
 %% Application callbacks
--export([start/4, emptyFieldController/3, border/1, empty/1, grassController/1]).
+-export([start/4, emptyFieldController/3, border/1, empty/1]).
+-import(messaging, [pass_field_info/2]).
 
 %%%===================================================================
 %%% Application callbacks
@@ -19,7 +20,8 @@
 start(N, G, R, F) ->
   io:format("hello~n"),
   register(e, spawn(?MODULE, emptyFieldController, [N, self(), []])), %create frame around grid with field containing an atom (saying end)
-  grassController(G),
+  %% register(painter, spawn(?MODULE, painter, [N])), %% create painter which paints field every timestep
+
   receive
     ok -> io:format("terminating now~n", [])
   end
@@ -70,9 +72,6 @@ empty(I)->
   io:format("I am EMPTY ~p~n", [I]),
   e ! {I, self()}.
 
-grassController(G)->
-  io:format("Gras~n").
-
 while([])->
   io:format("while ended~n");
 while([H|T]) ->
@@ -86,3 +85,48 @@ remove([H | T]) when tuple_size(H) == 2 -> [H] ++ remove(T);
 remove([H | T]) -> remove(T).
 
 
+
+%% ========== visual methods ===============
+%% TODO
+%% - register all controllers
+%% - define grid representation
+%% - pass gridsize dynamically
+%% - define species count-representation, make fit in messaging module (someting like {"species", Count}
+
+%% puts species counts and calls the grid-painter
+painter(Grid) ->
+  SpeciesCounts = get_species_counts(),
+  io:format("======= INFO ========~n", []),
+  io:format("== Current Species Counts: ==~n ] ~p~n", [SpeciesCounts]),
+  %% TODO pass gridsize instead of 5
+  GridState = get_grid_state(Grid),
+  paint_grid(GridState, 5),
+  timer:sleep(2000),
+  painter(Grid).
+
+%% takes a grid with all states and a gridsize and paints it to the console
+%% N is the dimension of the grid, used to make linebreaks
+paint_grid([],_) -> ok;
+paint_grid([{State, Index}|T], N) ->
+  if
+    %% linebreak if end of line
+    Index rem  N == 0 -> io:format("| ~p |~n", [State]);
+    true -> io:format("| ~p |", [State])
+  end,
+  paint_grid(T, N).
+
+%% gets all counts of species from controllers
+get_species_counts() ->
+  grasscontroller ! collect_info,
+  rabbitcontroller ! collect_info,
+  foxcontroller ! collect_info,
+  SpeciesCounts = [receive {Species, Count} -> [{Species, Count}] end || _ <- lists:seq(1, 3)],
+  SpeciesCounts.
+
+%% sends message to first process and waits for the list to pass through grid and come back
+get_grid_state([{_, First}, _]) ->
+  First ! {collect_info, []},
+  GridState = receive {collect_info, Result} -> ok end,
+  GridState.
+
+%% =================================================
