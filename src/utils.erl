@@ -10,6 +10,10 @@
 -author("alex").
 
 %% API
--export([]).
+-export([remove/1]).
 
-% TODO: I assume functions like while() and/or remove() should be placed here
+
+remove([])-> [];
+remove([H | T]) when tuple_size(H) == 2 -> [H] ++ remove(T);
+remove([H | T]) -> remove(T).
+

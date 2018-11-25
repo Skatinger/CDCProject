@@ -12,9 +12,11 @@
 %% API
 -export([grass_initializer/2, grass/2]).
 -import(common_behavior, [die/2, sleep/0]).
--import(messaging, [pass_field_info/2]).
+-import(messaging, [pass_field_info/1]).
 
   grass_initializer(N, NbFields) ->
+  %% register self for data-collection in painter
+  register(grass_controller, self()),
   %% spawn N of grass in the fields Fields
   %% decide random indexes
   SpawningPlaces = [rand:uniform(NbFields) || _ <- lists:seq(1,N)], %% this might contain duplicates. TODO fix it
@@ -26,16 +28,16 @@
 %% keeps track of grass count
 grass_controller(N)->
   receive
-    {grass_info} -> painter ! N;
+    {collect_info} -> painter ! {grass, N};
     {died} -> grass_controller(N-1);
     {spawned} -> grass_controller(N+1);
     {stop} -> ok
   end,
-  io:format("species-controller ending~n",[]).
+  io:format("grass_controller ending~n",[]).
 
-%% own grid number, tuple of current state (eating, mating...), Rabbit size, current Age
+%% own grid number, tuple of current state (eating, mating...), size, Age
 grass(MyIndex, {State, Size, Age}) ->
-  pass_field_info(self(), State),
+  pass_field_info({self(), State, Size, Age}),
   %% check if got eaten
   receive
     {eaten} -> die(MyIndex, {State, Size, Age})
