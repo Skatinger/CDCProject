@@ -39,8 +39,6 @@
 %% - should info-collection work on empty-fields or species? easier on fields, but can get less info (only species count and position,
 %%   but this is probably already enough. with this, could ask only a few empty-fields, which all push their neighbours list to the info,
 %%   less message passing would be necessary..
-%% - How to stop the simulation? Do we even want to stop it? What goal do we have (what do we want to accomplish with our simulation)?
-
 
 start(N, G, R, F) ->
   io:format("me: ~p~n", [self()]),
