@@ -13,19 +13,14 @@
 -export([painter/1]).
 
 %% ========== visual methods ===============
-%% TODO
-%% - register all controllers
-%% - define grid representation
-%% - pass gridsize dynamically
-%% - define species count-representation, make fit in messaging module (someting like {"species", Count}
 
 %% puts species counts and calls the grid-painter
 painter(Grid) ->
   SpeciesCounts = get_species_counts(),
-  io:format("======= INFO ========~n", []),
-  io:format("== Current Species Counts: ==~n ] ~p~n", [SpeciesCounts]),
   %% TODO pass gridsize instead of 5
   GridState = get_grid_state(Grid),
+  io:format("======= INFO ========~n", []),
+  io:format("== Current Species Counts: ==~n ] ~p~n", [SpeciesCounts]),
   paint_grid(GridState, 5),
   timer:sleep(2000),
   painter(Grid).
@@ -43,9 +38,9 @@ paint_grid([{State, Index}|T], N) ->
 
 %% gets all counts of species from controllers
 get_species_counts() ->
-  grasscontroller ! collect_info,
-  rabbitcontroller ! collect_info,
-  foxcontroller ! collect_info,
+  % grass_controller ! collect_info,
+  % rabbit_controller ! collect_info,
+  % fox_controller ! collect_info,
   SpeciesCounts = [receive {Species, Count} -> [{Species, Count}] end || _ <- lists:seq(1, 3)],
   SpeciesCounts.
 

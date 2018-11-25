@@ -15,6 +15,8 @@
 -import(messaging, [pass_field_info/1]).
 
   grass_initializer(N, NbFields) ->
+  %% register self for data-collection in painter
+  register(grass_controller, self()),
   %% spawn N of grass in the fields Fields
   %% decide random indexes
   SpawningPlaces = [rand:uniform(NbFields) || _ <- lists:seq(1,N)], %% this might contain duplicates. TODO fix it

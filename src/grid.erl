@@ -58,8 +58,14 @@ border(I)-> %unused
 
 empty(I)->
   io:format("I am EMPTY ~p~n", [I]),
-  e ! {I, self()}.
+  e ! {I, self()},
+  receive
+    {update, NeigbourIndex, {NeighbourState}} ->
+      %% update own state (e.g. what process(animal) is present on this field
+      io:format("updating own state and informing neighbours~n")
+  end.
 
+%% TODO change name to something meaningful.. :')
 while([])->
   io:format("while ended~n");
 while([H|T]) ->
