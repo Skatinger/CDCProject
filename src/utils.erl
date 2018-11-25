@@ -10,4 +10,10 @@
 -author("alex").
 
 %% API
--export([]).
+-export([remove/1]).
+
+
+remove([])-> [];
+remove([H | T]) when tuple_size(H) == 2 -> [H] ++ remove(T);
+remove([H | T]) -> remove(T).
+
