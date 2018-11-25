@@ -11,7 +11,7 @@
 
 -export([start/4]).
 -import(messaging, [pass_field_info/2]).
--import(grid, [border/1, emptyFieldController/3, empty/1]).
+-import(grid, [border/1, emptyFieldController/3]).
 
 %% TODO ==============
 

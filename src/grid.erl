@@ -10,7 +10,7 @@
 -author("alex, jonas").
 
 %% API
--export([empty/1, emptyFieldController/3]).
+-export([empty/2, emptyFieldController/3]).
 -import(utils, [remove/1]).
 
 emptyFieldController(N, M, [])->
@@ -42,28 +42,41 @@ emptyFieldController(N, M, [])->
                     %can be removed once the emptyController below is properly implemented
   emptyFieldController(N, M, R);
 
+
+
 emptyFieldController(N, M, A)-> %A is the list of all processes (tuples)
   %This is the controller that is used after all the empty processes have been instantiated
+  receive
+    {collect_count, Pid} -> Pid ! {empty, A}, emptyFieldController(N,M,A);
+    {collect_info, Pid} -> element(2, element(N+2, A)) ! {collect_info, N, Pid}
+  end,
   M ! ok. %sends ok to Master to let him know, that he can terminate
 
 
-empty(I)->
+empty(I, [])->
   e ! {I, self()}, %send Pid of empty process to controller
   receive
-    {init, Arr} -> io:format("Self: ~p, Neighbours: ~p~n", [self(), Arr]) %receive (ordered!) List of Neighbours
-  end.
+    {init, Arr} -> io:format("Self: ~p, Neighbours: ~p~n", [self(), Arr]), empty(I, Arr) %receive (ordered!) List of Neighbours
+  end;
 %TODO: the code below can by used in a secondary empty function which is used while the simulation runs and not for initialising
 %%  receive
-%%    {update, NeigbourIndex, {NeighbourState}} ->
+%%    {update, NeighbourIndex, {NeighbourState}} ->
 %%      %% update own state (e.g. what process(animal) is present on this field -> not necessary here, since it will be empty at first anyways
 %%      io:format("updating own state and informing neighbours~n")
 %%  end.
+empty(I, Neigh)->
+  %TODO: pass array with status as parameter in send/receive
+  receive
+    {collect_info, N, Pid} when I == (N-2)*(N-2)-> Pid ! {collect_info, []}
+    %collect info when element(2, element(5, Neigh)) == border -> use PID below (turning point of snake) !! both ways
+    %--> go like a snake through list (have to check if having to send left or right (using index?))
+  end.
 
 %% TODO change name to something meaningful.. :')
 while([])->
   io:format("while ended~n"); %TODO if the while is used, changed this to something else (not an io)
 while([H|T]) ->
-  spawn(?MODULE, empty, [H]),
+  spawn(?MODULE, empty, [H, []]),
   while(T).
 
 %returns a list of tuples containing only the real processes, no border "processes"
