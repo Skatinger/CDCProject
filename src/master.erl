@@ -60,6 +60,8 @@ emptyFieldController(N, M, A)-> %A is the list of border processes
   C = lists:flatten(B),
   D = remove(C),
   io:format("List: ~p~n", [D]),
+  %for each process send him an array of his neighbours:
+%%  [P ! {Array} || P <- D] TODO work in progress
   M ! ok
 .
 
@@ -70,7 +72,10 @@ border(I)-> %unused
 
 empty(I)->
   io:format("I am EMPTY ~p~n", [I]),
-  e ! {I, self()}.
+  e ! {I, self()},
+  receive
+    {Array} -> io:format("Index: ~p, Neighbours: ~p~n", [I, Array])
+  end.
 
 while([])->
   io:format("while ended~n");
