@@ -10,7 +10,7 @@
 -author("alex, jonas").
 
 %% API
--export([empty/2, emptyFieldController/3]).
+-export([empty/2, emptyFieldController/3, get_index/4]).
 -import(utils, [remove/1]).
 
 emptyFieldController(N, M, [])->
@@ -48,9 +48,10 @@ emptyFieldController(N, M, A)-> %A is the list of all processes (tuples)
   %This is the controller that is used after all the empty processes have been instantiated
   receive
     {collect_count, Pid} -> Pid ! {empty, A}, emptyFieldController(N,M,A);
-    {collect_info, Pid} -> element(2, element(N+2, A)) ! {collect_info, N, Pid}
+    {collect_info, Pid} -> element(2, lists:nth(N+2, A)) ! {collect_info, N, e, Pid, []}
   end,
-  M ! ok. %sends ok to Master to let him know, that he can terminate
+  M ! ok %sends ok to Master to let him know, that he can terminate
+.
 
 
 empty(I, [])->
@@ -66,10 +67,20 @@ empty(I, [])->
 %%  end.
 empty(I, Neigh)->
   %TODO: pass array with status as parameter in send/receive
-  receive
-    {collect_info, N, Pid} when I == (N-2)*(N-2)-> Pid ! {collect_info, []}
-    %collect info when element(2, element(5, Neigh)) == border -> use PID below (turning point of snake) !! both ways
-    %--> go like a snake through list (have to check if having to send left or right (using index?))
+  %TODO: empty processes should always be restarted (except when stop gets called)
+  Right_Neighbour = lists:nth(5, Neigh),
+  Left_Neighbour = lists:nth(4, Neigh),
+
+%%  io:format("Index of empty field: ~p~n", [I]),
+  receive %if snake, then the guard below will not work for even N's
+    {collect_info, N, NR, Pid, Info} when I == N*N - (N + 1) ->
+      Pid ! {collect_info, Info ++ [{self(), I}]}; %last process (bottom right corner)
+    {collect_info, N, NR, Pid, Info}  ->
+      if
+        Left_Neighbour == border -> Right_Neighbour ! {collect_info, N, lists:nth(7, Neigh), Pid, Info ++ [{self(), I}]}; %first process of a row
+        Right_Neighbour == border -> NR ! {collect_info, N, NR, Pid, Info ++ [{self(), I}]}; %last process of a row
+        true -> Right_Neighbour ! {collect_info, N, NR, Pid, Info ++ [{self(), I}]}
+      end
   end.
 
 %% TODO change name to something meaningful.. :')
