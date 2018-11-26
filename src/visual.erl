@@ -16,9 +16,9 @@
 %% ========== visual methods ===============
 
 %% puts species counts and calls the grid-painter
-painter(Grid) ->
+painter(Grid) -> %Grid is the same as N in grid.erl
+  [list_to_atom(integer_to_list(X)) ! {hello} || X <- lists:seq(1, 9)], %only used for testing (send message to registered empty fields)
   SpeciesCounts = get_species_counts(),
-  %% TODO pass gridsize instead of 5
   GridState = get_grid_state(),
   io:format("======= INFO ========~n", []),
   io:format("== Current Species Counts: ==~n ] ~p~n", [SpeciesCounts]),

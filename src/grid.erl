@@ -25,7 +25,8 @@ emptyFieldController(N, M, [])->
 
   [e ! {H, border} || H <- A], %send a message to itself to register border in list of PID's
   B = lists:subtract(X, A), %remaining processes (= all grid processes which are not border)
-  while(B), %spawn an empty process for each real process
+%%  while(B), %spawn an empty process for each real process
+  [register(list_to_atom(integer_to_list(get_index(H, N, 2*N, 0))),spawn(?MODULE, empty, [H, []])) || H <- B],
 
   %TODO: maybe change the above send and below receive, since its in the same function (no send/receive should be necessary)
   P = [receive {I, Pid} -> (lists:sublist(X,I-1) ++ [{I, Pid}] ++ lists:nthtail(I,X)) end || I <- lists:seq(1, N*N)], %receive a list of tuples {Index, PID} for each process on the grid (incl. border)
@@ -72,7 +73,8 @@ empty(I, Neigh)->
   Left_Neighbour = lists:nth(4, Neigh),
 
 %%  io:format("Index of empty field: ~p~n", [I]),
-  receive %if snake, then the guard below will not work for even N's
+  receive
+    {hello} -> io:format("registering worked~n", []);
     {collect_info, N, NR, Pid, Info} when I == N*N - (N + 1) ->
       Pid ! {collect_info, Info ++ [{self(), I}]}; %last process (bottom right corner)
     {collect_info, N, NR, Pid, Info}  ->
@@ -83,7 +85,7 @@ empty(I, Neigh)->
       end
   end.
 
-%% TODO change name to something meaningful.. :')
+%% TODO change name to something meaningful.. :') OR: remove, since its unused.
 while([])->
   io:format("while ended~n"); %TODO if the while is used, changed this to something else (not an io)
 while([H|T]) ->

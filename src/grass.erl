@@ -14,7 +14,7 @@
 -import(common_behavior, [die/2, sleep/0]).
 -import(messaging, [pass_field_info/1]).
 
-  grass_initializer(N, NbFields) ->
+grass_initializer(N, NbFields) ->
   %% register self for data-collection in painter
   register(grass_controller, self()),
   %% spawn N of grass in the fields Fields
