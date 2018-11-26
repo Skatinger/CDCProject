@@ -22,7 +22,7 @@ painter(Grid) ->
   GridState = get_grid_state(),
   io:format("======= INFO ========~n", []),
   io:format("== Current Species Counts: ==~n ] ~p~n", [SpeciesCounts]),
-  paint_grid(GridState, 5),
+  paint_grid(GridState, Grid),
   timer:sleep(2000)
 %%  painter(Grid)
 .
