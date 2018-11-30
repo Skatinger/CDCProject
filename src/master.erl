@@ -44,11 +44,15 @@ start(N, G, R, F) ->
   io:format("me: ~p~n", [self()]),
   register(e, spawn(grid, emptyFieldController, [N, self(), []])), %create frame around grid with field containing an atom (saying end)
   register(painter, spawn(visual, painter, [N])), %% create painter which paints field every timestep
+  timer:sleep(3000),
+  stop(e, painter),
   receive
     ok -> io:format("==== terminating now ====~n", [])
   end
 .
 
-stop() ->
+stop(Pid1, Pid2) ->
+  Pid1 ! {stop}, %sending stop to emptyController
+  Pid2 ! {stop}, %sending stop to painter
   %%write results to file
-  io:format("simulation terminated~n").
+  io:format("sending stop to all controllers~n").

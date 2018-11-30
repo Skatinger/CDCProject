@@ -10,20 +10,21 @@
 -author("alex").
 
 %% API
--export([grass_initializer/2, grass/2]).
+-export([grass_initializer/3, grass/2]).
 -import(common_behavior, [die/2, sleep/0]).
 -import(messaging, [pass_field_info/1]).
 
-grass_initializer(N, NbFields) ->
+grass_initializer(N, NbFields, Empty) ->
   %% register self for data-collection in painter
-  register(grass_controller, self()),
+%%  register(grass_controller, self()), %cannot be used for teda -> don't use at all
   %% spawn N of grass in the fields Fields
-  %% decide random indexes
-  SpawningPlaces = [rand:uniform(NbFields) || _ <- lists:seq(1,N)], %% this might contain duplicates. TODO fix it
-  [spawn(?MODULE, grass, [Index, {ready, 0, 0}]) || (Index) <- SpawningPlaces],
-  io:format("initialized grass~n", []),
-  master ! {initialized, []},
-  grass_controller(N).
+  %% decide random indexes \Todo will not generate exactly NbFields grass processes
+  SpawningPlaces = lists:usort([rand:uniform(NbFields) || _ <- lists:seq(1,N)]),
+  io:format("\e[0;32mSpawning places ~p~n \e[0;37m", [SpawningPlaces]).
+%%  [spawn(?MODULE, grass, [Index, {ready, 0, 0}]) || (Index) <- SpawningPlaces].
+%%  io:format("initialized grass~n", []),
+%%  master ! {initialized, []},
+%%  grass_controller(N).
 
 %% keeps track of grass count
 grass_controller(N)->

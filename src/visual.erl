@@ -17,14 +17,18 @@
 
 %% puts species counts and calls the grid-painter
 painter(Grid) -> %Grid is the same as N in grid.erl
-  [list_to_atom(integer_to_list(X)) ! {hello} || X <- lists:seq(1, 9)], %only used for testing (send message to registered empty fields)
+%%  [list_to_atom(integer_to_list(X)) ! {hello} || X <- lists:seq(1, 9)], %only used for testing (send message to registered empty fields)
   SpeciesCounts = get_species_counts(),
   GridState = get_grid_state(),
   io:format("======= INFO ========~n", []),
   io:format("== Current Species Counts: ==~n ] ~p~n", [SpeciesCounts]),
   paint_grid(GridState, Grid),
-  timer:sleep(2000)
-%%  painter(Grid)
+%%  timer:sleep(2000),
+  receive
+    {stop} -> io:format("terminating painter~n")
+  after
+    2000 ->  painter(Grid)
+  end
 .
 
 %% takes a grid with all states and a gridsize and paints it to the console

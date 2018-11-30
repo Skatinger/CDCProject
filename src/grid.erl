@@ -12,6 +12,7 @@
 %% API
 -export([empty/2, emptyFieldController/3, get_index/4]).
 -import(utils, [remove/1]).
+-import(grass, [grass_initializer/3]).
 
 emptyFieldController(N, M, [])->
   %TODO: rename variables to something useful
@@ -35,6 +36,10 @@ emptyFieldController(N, M, [])->
 %%  io:format("List: ~p~n", [R]),
   Be = get_processes(R), %list of the real processes (not properly indexed)
 %%  io:format("Be: ~p~n", [Be]),
+  Be2 = [{get_index(Indd, N, 2*N, 0), Pidd} || {Indd, Pidd} <- Be], %list of real processes (properly indexed)
+  io:format("\e[0;31mArray: ~p~n \e[0;37m", [Be2]),
+  grass_initializer(N, (N-2)*(N-2), Be2),
+
 
   Array =lists:reverse(init_neighbours(N, Be, (N-2)*(N-2), R, [])), %initialise a list of all possible neighbours for each process
   [E ! {init, lists:nth(get_index(Ind, N, 2*N, 0), Array)} || {Ind, E} <-Be ], %send each process its list of neighbours
@@ -49,9 +54,12 @@ emptyFieldController(N, M, A)-> %A is the list of all processes (tuples)
   %This is the controller that is used after all the empty processes have been instantiated
   receive
     {collect_count, Pid} -> Pid ! {empty, A}, emptyFieldController(N,M,A);
-    {collect_info, Pid} -> element(2, lists:nth(N+2, A)) ! {collect_info, N, e, Pid, []}
-  end,
-  M ! ok %sends ok to Master to let him know, that he can terminate
+    {collect_info, Pid} ->
+      element(2, lists:nth(N+2, A)) ! {collect_info, N, e, Pid, []},
+      emptyFieldController(N, M, A);
+    {stop} -> [P ! {stop} || {_, P} <- get_processes(A)], io:format("emptyController terminating, sending to all grid processes~n"), M! ok
+  end
+%%  M ! ok %sends ok to Master to let him know, that he can terminate
 .
 
 
@@ -74,15 +82,18 @@ empty(I, Neigh)->
 
 %%  io:format("Index of empty field: ~p~n", [I]),
   receive
-    {hello} -> io:format("registering worked~n", []);
+    {hello} -> io:format("registering worked~n", []); %should be unused
+    {stop} -> io:format("shuting down process ~p~n", [self()]);
     {collect_info, N, NR, Pid, Info} when I == N*N - (N + 1) ->
-      Pid ! {collect_info, Info ++ [{self(), I}]}; %last process (bottom right corner)
+      Pid ! {collect_info, Info ++ [{self(), I}]}, %last process (bottom right corner)
+      empty(I, Neigh);
     {collect_info, N, NR, Pid, Info}  ->
       if
         Left_Neighbour == border -> Right_Neighbour ! {collect_info, N, lists:nth(7, Neigh), Pid, Info ++ [{self(), I}]}; %first process of a row
         Right_Neighbour == border -> NR ! {collect_info, N, NR, Pid, Info ++ [{self(), I}]}; %last process of a row
         true -> Right_Neighbour ! {collect_info, N, NR, Pid, Info ++ [{self(), I}]}
-      end
+      end,
+      empty(I, Neigh)
   end.
 
 %% TODO change name to something meaningful.. :') OR: remove, since its unused.
@@ -103,10 +114,10 @@ init_neighbours(_N, [], 0, _R, Acc) ->
 %%  io:format("List of Neigbhours: ~p~n", [Acc]),
   Acc;
 init_neighbours(N, [{Ind, _} | T], C, R, Acc) ->
-  Top = [B2 || {B1, B2} <- R, B1 >= Ind - (N+1), B1 =< Ind - (N-1)],
-  Mid = [B2 || {B1, B2} <- R, B1 >= Ind - 1, B1 =< Ind + 1, B1 /= Ind],
+  Top = [B2 || {B1, B2} <- R, B1 >= Ind - (N+1), B1 =< Ind - (N-1)] ++
+    [B2 || {B1, B2} <- R, B1 >= Ind - 1, B1 =< Ind + 1, B1 /= Ind],
   Bot = [B2 || {B1, B2} <- R, B1 >= Ind + (N-1), B1 =< Ind + (N+1)],
-  Neigh = Top ++ Mid ++ Bot,
+  Neigh = Top ++ Bot,
   init_neighbours(N, T, C-1, R, [Neigh] ++ Acc).
 
 %Transforms indexes of real processes to index from 1 to max of real processes (E.g. 5x5 grid: [7,8,9,12,13,14,17,18,19] to [1,...,9]
