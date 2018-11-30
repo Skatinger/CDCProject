@@ -10,69 +10,77 @@
 -author("alex, jonas").
 
 %% API
--export([empty/2, emptyFieldController/3, get_index/4]).
+-export([empty/2, emptyFieldController/3]).
 -import(utils, [remove/1]).
 -import(grass, [grass_initializer/3]).
 
+%% initializes the grid (border and empty field processes)
+%% args: N: square root of the numbers of grid cells
+%%       M: pid of master process
+%%       []: placeholder for a list of all empty field processes (and the spawned controllers)
 emptyFieldController(N, M, [])->
   %TODO: rename variables to something useful
   %spawn frame first
-  X = lists:seq(1,N*N), %all empty field processes
-  Y = [Z || Z <- X, Z rem N == 0], %right border processes
-  W = [Z || Z <- X, Z rem N == 1], %left border processes
-  V = [Z || Z <- X, Z =< N], %top border processes
-  U = [Z || Z <- X, Z > N*N - N], %bottom border processes
-  A = lists:sort(lists:usort(lists:merge([U, V, W, Y]))), %merge lists, remove duplicates and sort it
+  All = lists:seq(1,N*N), %all empty field processes
+  Right = [Z || Z <- All, Z rem N == 0], %right border processes
+  Left = [Z || Z <- All, Z rem N == 1], %left border processes
+  Top = [Z || Z <- All, Z =< N], %top border processes
+  Bottom = [Z || Z <- All, Z > N*N - N], %bottom border processes
+  Frame = lists:sort(lists:usort(lists:merge([Top, Bottom, Left, Right]))), %merge lists, remove duplicates and sort it
 
-  [e ! {H, border} || H <- A], %send a message to itself to register border in list of PID's
-  B = lists:subtract(X, A), %remaining processes (= all grid processes which are not border)
-%%  while(B), %spawn an empty process for each real process
-  [register(list_to_atom(integer_to_list(get_index(H, N, 2*N, 0))),spawn(?MODULE, empty, [H, []])) || H <- B],
+  [efc ! {H, border} || H <- Frame], %send a message to itself to register border in list of PID's
+  Inner = lists:subtract(All, Frame), %remaining processes (= all grid processes which are not border)
+%%  utils:while(B), %spawn an empty process for each real process
+  [register(list_to_atom(integer_to_list(utils:get_index(H, N, 2*N, 0))),spawn(?MODULE, empty, [H, []])) || H <- Inner],
 
   %TODO: maybe change the above send and below receive, since its in the same function (no send/receive should be necessary)
-  P = [receive {I, Pid} -> (lists:sublist(X,I-1) ++ [{I, Pid}] ++ lists:nthtail(I,X)) end || I <- lists:seq(1, N*N)], %receive a list of tuples {Index, PID} for each process on the grid (incl. border)
-  Q = lists:flatten(P), %turn it into a single list
-  R = remove(Q), %remove duplicates
-%%  io:format("List: ~p~n", [R]),
-  Be = get_processes(R), %list of the real processes (not properly indexed)
-%%  io:format("Be: ~p~n", [Be]),
-  Be2 = [{get_index(Indd, N, 2*N, 0), Pidd} || {Indd, Pidd} <- Be], %list of real processes (properly indexed)
-  io:format("\e[0;31mArray: ~p~n \e[0;37m", [Be2]),
+  Pid_list = [receive {I, Pid} -> (lists:sublist(All,I-1) ++ [{I, Pid}] ++ lists:nthtail(I,All)) end || I <- lists:seq(1, N*N)], %receive a list of tuples {Index, PID} for each process on the grid (incl. border)
+  List_of_Pids = utils:remove_indices(lists:flatten(Pid_list)), %turn it into a single list and remove superfluous indices
+
+  Empty_Processes1 = utils:get_processes(List_of_Pids), %list of the real processes (not properly indexed)
+  Empty_Processes = [{utils:get_index(Index, N, 2*N, 0), Pid} || {Index, Pid} <- Empty_Processes1], %list of real processes (properly indexed)
+  io:format("\e[0;31mArray: ~p~n \e[0;37m", [Empty_Processes]),
 
   % spawn grass controller first
-  GrassControllerPid = spawn(grass, grass_initializer, [self(), M, (N-2)*(N-2), Be2]),
+  GrassControllerPid = spawn(grass, grass_initializer, [self(), M, (N-2)*(N-2), Empty_Processes]),
   % and receive fields that are still empty from grasscontroller
+  %Todo: see below
   %% receive {EmptyFields} -> io:format("should now spawn next controller with emptyfields, and add its pid to controllerPids list..~n") end,
   %spawn(all other controllers, args),
 
   ControllerPids = [GrassControllerPid],
 
 
-  Array =lists:reverse(init_neighbours(N, Be, (N-2)*(N-2), R, [])), %initialise a list of all possible neighbours for each process
-  [E ! {init, lists:nth(get_index(Ind, N, 2*N, 0), Array)} || {Ind, E} <-Be ], %send each process its list of neighbours
+  List_of_Neigh = lists:reverse(utils:init_neighbours(N, Empty_Processes1, (N-2)*(N-2), List_of_Pids, [])), %initialise a list of all possible neighbours for each process
+  [Empty_Field ! {init, lists:nth(utils:get_index(Ind, N, 2*N, 0), List_of_Neigh)} || {Ind, Empty_Field} <-Empty_Processes1], %send each process its list of neighbours
 
   timer:sleep(200), %don't want to return to master before all empty processes have printed their neighbours list,
                     %can be removed once the emptyController below is properly implemented
 
   % list of all processes spawned by this one, which should be terminated upon receiving stop
-  Children = lists:append(R, ControllerPids),
+  Children = List_of_Pids ++ [{N*N + 1, lists:nth(1, ControllerPids)}], %adding first controller Pid (in this case the grass controller)
   emptyFieldController(N, M, Children);
 
-emptyFieldController(N, M, A)-> %A is the list of all processes (tuples)
+
+%% manages the grid (empty field processes and other controllers)
+%% args: N: square root of the numbers of grid cells
+%%       M: pid of master process
+%%       All: a list of tuples containing the index and pid of each spawned process (by this controller)
+emptyFieldController(N, M, All)->
   %This is the controller that is used after all the empty processes have been instantiated
   receive
-    {collect_count, Pid} -> Pid ! {empty, A}, emptyFieldController(N,M,A);
+    {collect_count, Pid} -> Pid ! {empty, All}, emptyFieldController(N,M,All);
     {collect_info, Pid} ->
-      element(2, lists:nth(N+2, A)) ! {collect_info, N, e, Pid, []},
-      emptyFieldController(N, M, A);
-    {stop} -> [P ! {stop} || {_, P} <- get_processes(A)], io:format("emptyController terminating, sending to all grid processes~n"), M! ok
+      element(2, lists:nth(N+2, All)) ! {collect_info, N, efc, Pid, []},
+      emptyFieldController(N, M, All);
+    {stop} -> [P ! {stop} || {_, P} <- utils:get_processes(All)], io:format("emptyController terminating, sending to all grid processes~n"), M! ok
   end
 %%  M ! ok %sends ok to Master to let him know, that he can terminate
 .
 
 
 empty(I, [])->
-  e ! {I, self()}, %send Pid of empty process to controller
+  efc ! {I, self()}, %send Pid of empty process to controller
   receive
     {init, Arr} -> io:format("Self: ~p, Neighbours: ~p~n", [self(), Arr]), empty(I, Arr) %receive (ordered!) List of Neighbours
   end;
@@ -103,31 +111,3 @@ empty(I, Neigh)->
       end,
       empty(I, Neigh)
   end.
-
-%% TODO change name to something meaningful.. :') OR: remove, since its unused.
-while([])->
-  io:format("while ended~n"); %TODO if the while is used, changed this to something else (not an io)
-while([H|T]) ->
-  spawn(?MODULE, empty, [H, []]),
-  while(T).
-
-%returns a list of tuples containing only the real processes, no border "processes"
-get_processes([]) -> [];
-get_processes([H | T]) when element(2, H) == border ->
-  get_processes(T);
-get_processes([H | T]) -> [H] ++ get_processes(T).
-
-%initialise a list of list containing the surrounding processes of every real process
-init_neighbours(_N, [], 0, _R, Acc) ->
-%%  io:format("List of Neigbhours: ~p~n", [Acc]),
-  Acc;
-init_neighbours(N, [{Ind, _} | T], C, R, Acc) ->
-  Top = [B2 || {B1, B2} <- R, B1 >= Ind - (N+1), B1 =< Ind - (N-1)] ++
-    [B2 || {B1, B2} <- R, B1 >= Ind - 1, B1 =< Ind + 1, B1 /= Ind],
-  Bot = [B2 || {B1, B2} <- R, B1 >= Ind + (N-1), B1 =< Ind + (N+1)],
-  Neigh = Top ++ Bot,
-  init_neighbours(N, T, C-1, R, [Neigh] ++ Acc).
-
-%Transforms indexes of real processes to index from 1 to max of real processes (E.g. 5x5 grid: [7,8,9,12,13,14,17,18,19] to [1,...,9]
-get_index(I, N, Mult, Acc) when I > Mult -> get_index(I, N, Mult + N, Acc + 2);
-get_index(I, N, _Mult, Acc) -> I - (N + 1 + Acc).

@@ -42,10 +42,10 @@
 
 start(N, G, R, F) ->
   io:format("me: ~p~n", [self()]),
-  register(e, spawn(grid, emptyFieldController, [N, self(), []])), %create frame around grid with field containing an atom (saying end)
+  register(efc, spawn(grid, emptyFieldController, [N, self(), []])), %create frame around grid with field containing an atom (saying end)
   register(painter, spawn(visual, painter, [N])), %% create painter which paints field every timestep
   timer:sleep(3000),
-  stop(e, painter),
+  stop(efc, painter),
   receive
     ok -> io:format("==== terminating now ====~n", [])
   end

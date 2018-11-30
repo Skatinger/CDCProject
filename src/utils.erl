@@ -10,12 +10,46 @@
 -author("alex").
 
 %% API
--export([remove/1, get_spawning_places/2]).
+-export([remove_indices/1, get_processes/1, init_neighbours/5, get_index/4, get_spawning_places/2]).
+
+%% removes all non tuple elements (indices) from a list
+remove_indices([])-> [];
+remove_indices([H | T]) when tuple_size(H) == 2 -> [H] ++ remove_indices(T);
+remove_indices([H | T]) -> remove_indices(T).
+
+%% returns a list of tuples containing only the real processes, no border "processes"
+get_processes([]) -> [];
+get_processes([H | T]) when element(2, H) == border ->
+  get_processes(T);
+get_processes([H | T]) -> [H] ++ get_processes(T).
+
+%% initialise a list of list containing the surrounding processes of the inner grid (for every real process)
+%% args: N: square root of the numbers of grid cells
+%%       []: list of the inner processes
+%%       C: Counter (goes from (N-2)*(N-2) to zero)
+%%       R: all grid processes (empty fields and border)
+%%       Acc: Accumulator (will be the resulting list of neighbours)
+init_neighbours(_N, [], 0, _R, Acc) ->
+  %io:format("List of Neigbhours: ~p~n", [Acc]),
+  Acc;
+init_neighbours(N, [{Ind, _} | T], C, R, Acc) ->
+  Top = [B2 || {B1, B2} <- R, B1 >= Ind - (N+1), B1 =< Ind - (N-1)],
+  Mid = [B2 || {B1, B2} <- R, B1 >= Ind - 1, B1 =< Ind + 1, B1 /= Ind],
+  Bot = [B2 || {B1, B2} <- R, B1 >= Ind + (N-1), B1 =< Ind + (N+1)],
+  Neigh = Top ++ Mid ++ Bot,
+  init_neighbours(N, T, C-1, R, [Neigh] ++ Acc).
+
+%Transforms indexes of real processes to index from 1 to max of real processes (E.g. 5x5 grid: [7,8,9,12,13,14,17,18,19] to [1,...,9]
+get_index(I, N, Mult, Acc) when I > Mult -> get_index(I, N, Mult + N, Acc + 2);
+get_index(I, N, _Mult, Acc) -> I - (N + 1 + Acc).
 
 
-remove([])-> [];
-remove([H | T]) when tuple_size(H) == 2 -> [H] ++ remove(T);
-remove([H | T]) -> remove(T).
+%% TODO change name to something meaningful.. :') OR: remove, since its unused.
+while([])->
+  io:format("while ended~n"); %TODO if the while is used, changed this to something else (not an io)
+while([H|T]) ->
+  spawn(?MODULE, empty, [H, []]),
+  while(T).
 
 
 %% picks N fields from given Fields list, without duplicates

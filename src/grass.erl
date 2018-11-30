@@ -26,7 +26,7 @@ grass_initializer(GridPid, Master, N, EmptyFields) ->
 
   % send still empty fields back to grid
   StillEmptyFields = [Element || Element <- EmptyFields, not(lists:member(Element,SpawningPlaces))],
-  GridPid ! StillEmptyFields,
+  GridPid ! StillEmptyFields, %\Todo fix this
 
   % start controller
   grass_controller(N).

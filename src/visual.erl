@@ -36,7 +36,7 @@ painter(Grid) -> %Grid is the same as N in grid.erl
 %% N is the dimension of the grid, used to make linebreaks
 paint_grid([],_) -> ok;
 paint_grid([{State, Index}|T], N) ->
-  Converted_Index = grid:get_index(Index, N, 2*N, 0),
+  Converted_Index = utils:get_index(Index, N, 2*N, 0),
   if
   % linebreak if end of line
     Converted_Index rem  (N-2) == 0 -> io:format("|- ~p -|~n", [State]);
@@ -46,7 +46,7 @@ paint_grid([{State, Index}|T], N) ->
 
 %% gets all counts of species from controllers
 get_species_counts() ->
-  e ! {collect_count, self()},
+  efc ! {collect_count, self()},
   % grass_controller ! collect_info,
   % rabbit_controller ! collect_info,
   % fox_controller ! collect_info,
@@ -57,7 +57,7 @@ get_species_counts() ->
 
 %% sends message to first process and waits for the list to pass through grid and come back (replace first process with controller)
 get_grid_state() ->
-  e ! {collect_info, self()},
+  efc ! {collect_info, self()},
   io:format("requesting grid state (visual.erl)~n"),
   GridState = receive {collect_info, Result} -> Result end,
   GridState.
