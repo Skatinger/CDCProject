@@ -16,8 +16,8 @@
 %% ------------------------ public ------------------------------------
 
 %% controls rabbit population, and spawns it
-%% args: N:           number of rabbits to spawn initially
-%%       EmptyFields: EmptyFields to spawn on
+%% args:         N: number of rabbits to spawn initially
+%%     EmptyFields: EmptyFields to spawn on
 rabbit_controller(N, EmptyFields)->
   % initialize rabbits with initmethod
   %% spawn N of rabbits in the fields Fields
@@ -31,7 +31,7 @@ rabbit_controller(N, EmptyFields)->
 
 %% called on new rabbit
 %% args: MyIndex: index in field
-%%       Pid:     pid of the host-processor on this index
+%%           Pid: pid of the host-processor on this index
 rabbit_initializer(MyIndex, Pid) ->
   %% register self with empty node
 

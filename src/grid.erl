@@ -38,7 +38,14 @@ emptyFieldController(N, M, [])->
 %%  io:format("Be: ~p~n", [Be]),
   Be2 = [{get_index(Indd, N, 2*N, 0), Pidd} || {Indd, Pidd} <- Be], %list of real processes (properly indexed)
   io:format("\e[0;31mArray: ~p~n \e[0;37m", [Be2]),
-  grass_initializer(N, (N-2)*(N-2), Be2),
+
+  % spawn grass controller first
+  GrassControllerPid = spawn(grass, grass_initializer, [self(), M, (N-2)*(N-2), Be2]),
+  % and receive fields that are still empty from grasscontroller
+  %% receive {EmptyFields} -> io:format("should now spawn next controller with emptyfields, and add its pid to controllerPids list..~n") end,
+  %spawn(all other controllers, args),
+
+  ControllerPids = [GrassControllerPid],
 
 
   Array =lists:reverse(init_neighbours(N, Be, (N-2)*(N-2), R, [])), %initialise a list of all possible neighbours for each process
@@ -46,9 +53,10 @@ emptyFieldController(N, M, [])->
 
   timer:sleep(200), %don't want to return to master before all empty processes have printed their neighbours list,
                     %can be removed once the emptyController below is properly implemented
-  emptyFieldController(N, M, R);
 
-
+  % list of all processes spawned by this one, which should be terminated upon receiving stop
+  Children = lists:append(R, ControllerPids),
+  emptyFieldController(N, M, Children);
 
 emptyFieldController(N, M, A)-> %A is the list of all processes (tuples)
   %This is the controller that is used after all the empty processes have been instantiated

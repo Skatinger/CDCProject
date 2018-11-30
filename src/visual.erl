@@ -25,7 +25,7 @@ painter(Grid) -> %Grid is the same as N in grid.erl
   receive
     {stop} -> io:format("terminating painter~n")
   after
-    2000 ->  painter(Grid)
+    1000 ->  painter(Grid)
   end
 .
 
@@ -35,7 +35,7 @@ painter(Grid) -> %Grid is the same as N in grid.erl
 %% takes a grid with all states and a gridsize and paints it to the console
 %% N is the dimension of the grid, used to make linebreaks
 paint_grid([],_) -> ok;
-paint_grid([{State, Index}|T], N) -> %TODO: replace with guards (instead of if)?
+paint_grid([{State, Index}|T], N) ->
   Converted_Index = grid:get_index(Index, N, 2*N, 0),
   if
   % linebreak if end of line
@@ -61,5 +61,3 @@ get_grid_state() ->
   io:format("requesting grid state (visual.erl)~n"),
   GridState = receive {collect_info, Result} -> Result end,
   GridState.
-
-%% =================================================

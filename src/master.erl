@@ -52,6 +52,8 @@ start(N, G, R, F) ->
 .
 
 stop(Pid1, Pid2) ->
+  % stops all running processes. care, will be sent to supervisor etc. as well, might throw errors
+  %% [Pid ! stop || Pid <- (erlang:processes())],
   Pid1 ! {stop}, %sending stop to emptyController
   Pid2 ! {stop}, %sending stop to painter
   %%write results to file
