@@ -35,12 +35,12 @@ painter(Grid) -> %Grid is the same as N in grid.erl
 %% takes a grid with all states and a gridsize and paints it to the console
 %% N is the dimension of the grid, used to make linebreaks
 paint_grid([],_) -> ok;
-paint_grid([{State, Index}|T], N) ->
+paint_grid([{Index, State, Occupant}|T], N) ->
   Converted_Index = utils:get_index(Index, N, 2*N, 0),
   if
   % linebreak if end of line
-    Converted_Index rem  (N-2) == 0 -> io:format("|- ~p -|~n", [State]);
-    true -> io:format("| ~p |", [State])
+    Converted_Index rem  (N-2) == 0 -> io:format("|- ~p, ~p -|~n", [State, utils:get_Occupant(Occupant)]);
+    true -> io:format("| ~p, ~p |", [State, utils:get_Occupant(Occupant)])
   end,
   paint_grid(T, N).
 

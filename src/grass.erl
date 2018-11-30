@@ -18,15 +18,15 @@
 %%      EmptyFields: list of fields to spawn on
 grass_initializer(GridPid, Master, N, EmptyFields) ->
   % get Index of fields to spawn on
-  SpawningPlaces = utils:get_spawning_places(N, EmptyFields),
-  % io:format("\e[0;32mSpawning places ~p~n \e[0;37m", [SpawningPlaces]),
+  SpawningPlaces = utils:get_spawning_places(rand:uniform(N), EmptyFields), %get indices of a random number of grid cells to spawn grass on
 
   % spawn grasses
   [spawn(?MODULE, start_grass, [Index]) || (Index) <- SpawningPlaces],
 
   % send still empty fields back to grid
+  io:format("\e[0;32mSpawning places ~p~n \e[0;37m", [SpawningPlaces]),
   StillEmptyFields = [Element || Element <- EmptyFields, not(lists:member(Element,SpawningPlaces))],
-  GridPid ! StillEmptyFields, %\Todo fix this
+  GridPid ! {grass, StillEmptyFields},
 
   % start controller
   grass_controller(N).
@@ -50,6 +50,8 @@ grass_controller(N)->
 
 
 start_grass(MyIndex) ->
+  Empty_Pid = element(2, MyIndex),
+  Empty_Pid ! {grass, self()},
   % TODO register to the empty-field of MyIndex
   grass(MyIndex, {ready, 0, 0}).
 

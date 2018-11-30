@@ -10,7 +10,7 @@
 -author("alex, jonas").
 
 %% API
--export([empty/2, emptyFieldController/3]).
+-export([empty/3, emptyFieldController/3]).
 -import(utils, [remove/1]).
 -import(grass, [grass_initializer/3]).
 
@@ -31,7 +31,7 @@ emptyFieldController(N, M, [])->
   [efc ! {H, border} || H <- Frame], %send a message to itself to register border in list of PID's
   Inner = lists:subtract(All, Frame), %remaining processes (= all grid processes which are not border)
 %%  utils:while(B), %spawn an empty process for each real process
-  [register(list_to_atom(integer_to_list(utils:get_index(H, N, 2*N, 0))),spawn(?MODULE, empty, [H, []])) || H <- Inner],
+  [register(list_to_atom(integer_to_list(utils:get_index(H, N, 2*N, 0))),spawn(?MODULE, empty, [H, [], []])) || H <- Inner],
 
   %TODO: maybe change the above send and below receive, since its in the same function (no send/receive should be necessary)
   Pid_list = [receive {I, Pid} -> (lists:sublist(All,I-1) ++ [{I, Pid}] ++ lists:nthtail(I,All)) end || I <- lists:seq(1, N*N)], %receive a list of tuples {Index, PID} for each process on the grid (incl. border)
@@ -69,6 +69,9 @@ emptyFieldController(N, M, [])->
 emptyFieldController(N, M, All)->
   %This is the controller that is used after all the empty processes have been instantiated
   receive
+    {grass, StillEmptyFields} ->
+      io:format("Still Empty Fields: ~p~n", [StillEmptyFields]), %Todo: send StillEmptyFields to next controller (e.g. rabbits)
+      emptyFieldController(N, M, All);
     {collect_count, Pid} -> Pid ! {empty, All}, emptyFieldController(N,M,All);
     {collect_info, Pid} ->
       element(2, lists:nth(N+2, All)) ! {collect_info, N, efc, Pid, []},
@@ -79,10 +82,17 @@ emptyFieldController(N, M, All)->
 .
 
 
-empty(I, [])->
-  efc ! {I, self()}, %send Pid of empty process to controller
+%=======================================================================================================================
+%=======================================================================================================================
+
+%% the empty field processes
+%% args: Index: Index of the field in the grid (or in the list of processes in the empty controller)
+%%       Neigh: list of his surrounding neighbours
+%%       Occupant: the process currently on this field (can be an empty list if nothing is on it) (tuple with species (atom) an pid)
+empty(Index, [], [])->
+  efc ! {Index, self()}, %send Pid of empty process to controller
   receive
-    {init, Arr} -> io:format("Self: ~p, Neighbours: ~p~n", [self(), Arr]), empty(I, Arr) %receive (ordered!) List of Neighbours
+    {init, Arr} -> io:format("Self: ~p, Neighbours: ~p~n", [self(), Arr]), empty(Index, Arr, []) %receive (ordered!) List of Neighbours
   end;
 %TODO: the code below can by used in a secondary empty function which is used while the simulation runs and not for initialising
 %%  receive
@@ -90,7 +100,7 @@ empty(I, [])->
 %%      %% update own state (e.g. what process(animal) is present on this field -> not necessary here, since it will be empty at first anyways
 %%      io:format("updating own state and informing neighbours~n")
 %%  end.
-empty(I, Neigh)->
+empty(Index, Neigh, Occupant)->
   %TODO: pass array with status as parameter in send/receive
   %TODO: empty processes should always be restarted (except when stop gets called)
   Right_Neighbour = lists:nth(5, Neigh),
@@ -98,16 +108,16 @@ empty(I, Neigh)->
 
 %%  io:format("Index of empty field: ~p~n", [I]),
   receive
-    {hello} -> io:format("registering worked~n", []); %should be unused
+    {grass, Pid} -> empty(Index, Neigh, {grass, Pid});
     {stop} -> io:format("shuting down process ~p~n", [self()]);
-    {collect_info, N, NR, Pid, Info} when I == N*N - (N + 1) ->
-      Pid ! {collect_info, Info ++ [{self(), I}]}, %last process (bottom right corner)
-      empty(I, Neigh);
+    {collect_info, N, NR, Pid, Info} when Index == N*N - (N + 1) ->
+      Pid ! {collect_info, Info ++ [{Index, self(), Occupant}]}, %last process (bottom right corner)
+      empty(Index, Neigh, Occupant);
     {collect_info, N, NR, Pid, Info}  ->
       if
-        Left_Neighbour == border -> Right_Neighbour ! {collect_info, N, lists:nth(7, Neigh), Pid, Info ++ [{self(), I}]}; %first process of a row
-        Right_Neighbour == border -> NR ! {collect_info, N, NR, Pid, Info ++ [{self(), I}]}; %last process of a row
-        true -> Right_Neighbour ! {collect_info, N, NR, Pid, Info ++ [{self(), I}]}
+        Left_Neighbour == border -> Right_Neighbour ! {collect_info, N, lists:nth(7, Neigh), Pid, Info ++ [{Index, self(), Occupant}]}; %first process of a row
+        Right_Neighbour == border -> NR ! {collect_info, N, NR, Pid, Info ++ [{Index, self(), Occupant}]}; %last process of a row
+        true -> Right_Neighbour ! {collect_info, N, NR, Pid, Info ++ [{Index, self(), Occupant}]}
       end,
-      empty(I, Neigh)
+      empty(Index, Neigh, Occupant)
   end.

@@ -10,7 +10,7 @@
 -author("alex").
 
 %% API
--export([remove_indices/1, get_processes/1, init_neighbours/5, get_index/4, get_spawning_places/2]).
+-export([remove_indices/1, get_processes/1, init_neighbours/5, get_index/4, get_Occupant/1, get_spawning_places/2]).
 
 %% removes all non tuple elements (indices) from a list
 remove_indices([])-> [];
@@ -42,6 +42,10 @@ init_neighbours(N, [{Ind, _} | T], C, R, Acc) ->
 %Transforms indexes of real processes to index from 1 to max of real processes (E.g. 5x5 grid: [7,8,9,12,13,14,17,18,19] to [1,...,9]
 get_index(I, N, Mult, Acc) when I > Mult -> get_index(I, N, Mult + N, Acc + 2);
 get_index(I, N, _Mult, Acc) -> I - (N + 1 + Acc).
+
+%% returns the occupant of an empty field (first element of tuple (second would be his pid) or empty list (meaning no occupant is on this field))
+get_Occupant([]) -> [];
+get_Occupant(Occupant) -> element(1, Occupant).
 
 
 %% TODO change name to something meaningful.. :') OR: remove, since its unused.
