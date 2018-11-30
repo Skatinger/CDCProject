@@ -1,4 +1,4 @@
-  %%%-------------------------------------------------------------------
+%%%-------------------------------------------------------------------
 %%% @author alex
 %%% @copyright (C) 2018, <COMPANY>
 %%% @doc
@@ -11,20 +11,15 @@
 
 %% API
 -export([grass_initializer/3, grass/2]).
--import(common_behavior, [die/2, sleep/0]).
 -import(messaging, [pass_field_info/1]).
 
-grass_initializer(N, NbFields, Empty) ->
-  %% register self for data-collection in painter
-%%  register(grass_controller, self()), %cannot be used for teda -> don't use at all
+grass_initializer(N, NbFields, EmptyFields) ->
   %% spawn N of grass in the fields Fields
   %% decide random indexes \Todo will not generate exactly NbFields grass processes
-  SpawningPlaces = lists:usort([rand:uniform(NbFields) || _ <- lists:seq(1,N)]),
+  SpawningPlaces = utils:get_spawning_places(N, EmptyFields),
   io:format("\e[0;32mSpawning places ~p~n \e[0;37m", [SpawningPlaces]).
 %%  [spawn(?MODULE, grass, [Index, {ready, 0, 0}]) || (Index) <- SpawningPlaces].
-%%  io:format("initialized grass~n", []),
-%%  master ! {initialized, []},
-%%  grass_controller(N).
+  %% grass_controller(N).
 
 %% keeps track of grass count
 grass_controller(N)->
@@ -41,7 +36,7 @@ grass(MyIndex, {State, Size, Age}) ->
   pass_field_info({self(), State, Size, Age}),
   %% check if got eaten
   receive
-    {eaten} -> die(MyIndex, {State, Size, Age})
+    {eaten} -> common_behavior:die(MyIndex, {State, Size, Age})
   after 5 -> ok
   end,
 

@@ -11,7 +11,6 @@
 
 %% API
 -export([painter/1]).
--import(grid, [get_index/4]).
 
 %% ========== visual methods ===============
 
@@ -23,7 +22,6 @@ painter(Grid) -> %Grid is the same as N in grid.erl
   io:format("======= INFO ========~n", []),
   io:format("== Current Species Counts: ==~n ] ~p~n", [SpeciesCounts]),
   paint_grid(GridState, Grid),
-%%  timer:sleep(2000),
   receive
     {stop} -> io:format("terminating painter~n")
   after
@@ -31,13 +29,16 @@ painter(Grid) -> %Grid is the same as N in grid.erl
   end
 .
 
+%% ------------------------ private ------------------------------------
+
+
 %% takes a grid with all states and a gridsize and paints it to the console
 %% N is the dimension of the grid, used to make linebreaks
 paint_grid([],_) -> ok;
 paint_grid([{State, Index}|T], N) -> %TODO: replace with guards (instead of if)?
-  Converted_Index = get_index(Index, N, 2*N, 0),
+  Converted_Index = grid:get_index(Index, N, 2*N, 0),
   if
-  %% linebreak if end of line
+  % linebreak if end of line
     Converted_Index rem  (N-2) == 0 -> io:format("|- ~p -|~n", [State]);
     true -> io:format("| ~p |", [State])
   end,
