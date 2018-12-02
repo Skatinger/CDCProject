@@ -23,7 +23,8 @@ painter(Grid, ControllerPids) -> %Grid is the same as N in grid.erl
   io:format("== Current Species Counts: ==~n ] ~p~n", [SpeciesCounts]),
   paint_grid(GridState, Grid),
   receive
-    {stop} -> io:format("terminating painter~n")
+    {stop} -> io:format("terminating painter~n");
+    {NewControllerPid} -> painter(Grid, [NewControllerPid|ControllerPids])
   after
     1000 ->  painter(Grid, ControllerPids)
   end

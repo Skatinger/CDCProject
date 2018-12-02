@@ -15,28 +15,12 @@
 
 %% ------------------------ public ------------------------------------
 
-%% keeps track of rabbit count
-%% args:  Master: Pid of Masterprocess
-%%             N: current number of grasses
-%%      Children: Processes spawned by grass_initializer
-rabbit_controller(N) ->
-  receive
-    {collect_info, PainterPid} ->
-      PainterPid ! {grass, N},
-      rabbit_controller(N);
-    {died} -> rabbit_controller(N - 1);
-    {spawned} -> rabbit_controller(N + 1);
-    {stop} -> ok
-  end,
-  io:format("rabbit_controller ending~n", []).
-
-
 %% initializes all rabbit processes
 %% args: GridPid: pid of grid-process
 %%        Master: pid of master process (maybe unnecessary?)
 %%             N: square root of grid size (maybe unnecessary?)
 %%   EmptyFields: list of fields to spawn on
-rabbit_initializer(GridPid, Master, N, EmptyFields) ->
+rabbit_initializer(GridPid, N, EmptyFields, PainterPid) ->
   % get Index of fields to spawn on
   io:format("StillEMptyFields received in rabbit: ~p~n", [EmptyFields]),
 %%  io:format("Length of EmptyFields ~p~n", [EmptyFields]),
@@ -50,8 +34,26 @@ rabbit_initializer(GridPid, Master, N, EmptyFields) ->
   StillEmptyFields = [Element || Element <- EmptyFields, not(lists:member(Element, SpawningPlaces))],
   GridPid ! {rabbit, StillEmptyFields},
 
+  %register with painter before starting controller
+  messaging:register_self_to_painter(self(), PainterPid),
   % start controller
   rabbit_controller(N).
+
+%% keeps track of rabbit count
+%% args:  Master: Pid of Masterprocess
+%%             N: current number of grasses
+%%      Children: Processes spawned by grass_initializer
+rabbit_controller(N) ->
+  receive
+    {collect_count, PainterPid} ->
+      PainterPid ! {grass, N},
+      rabbit_controller(N);
+    {died} -> rabbit_controller(N - 1);
+    {spawned} -> rabbit_controller(N + 1);
+    {stop} -> ok
+  end,
+  io:format("rabbit_controller ending~n", []).
+
 
 
 start_rabbit(MyIndex) ->

@@ -28,6 +28,8 @@ grass_initializer(GridPid, N, EmptyFields, PainterPid) ->
   StillEmptyFields = [Element || Element <- EmptyFields, not(lists:member(Element,SpawningPlaces))],
   GridPid ! {grass, StillEmptyFields},
 
+  % register this controller at the painter
+  messaging:register_self_to_painter(self(), PainterPid),
   % start controller
   grass_controller(N).
 
@@ -39,7 +41,7 @@ grass_initializer(GridPid, N, EmptyFields, PainterPid) ->
 %%      Children: Processes spawned by grass_initializer
 grass_controller(N)->
   receive
-    {collect_info, PainterPid} ->
+    {collect_count, PainterPid} ->
       PainterPid ! {grass, N},
       grass_controller(N);
     {died} -> grass_controller(N-1);

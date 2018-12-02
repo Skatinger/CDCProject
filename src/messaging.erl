@@ -10,8 +10,10 @@
 -author("alex").
 
 %% API
--export([pass_field_info/1]).
+-export([pass_field_info/1, register_self_to_painter/2]).
 
+register_self_to_painter(MyPid, PainterPid) ->
+  PainterPid ! {MyPid}.
 
 pass_field_info({MyPid, Species, State, Size, Age}) ->
   receive

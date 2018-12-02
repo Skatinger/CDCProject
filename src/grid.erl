@@ -44,7 +44,6 @@ emptyFieldController(N, M, [])->
 
   % receive pid of painter to pass to controllers
   PainterPid = receive {painter_pid, PainterPid} -> PainterPid end,
-  io:format("RECEIVED PPPPPPPPPPPPPPPPPPainter pid ~p~n", [PainterPid]),
 
   % spawn grass controller first
   GrassControllerPid = spawn(grass, grass_initializer, [self(), (N-2)*(N-2), Empty_Processes, PainterPid]),
@@ -64,28 +63,29 @@ emptyFieldController(N, M, [])->
 
   % list of all processes spawned by this one, which should be terminated upon receiving stop
   Children = List_of_Pids ++ [{N*N + 1, lists:nth(1, ControllerPids)}], %adding first controller Pid (in this case the grass controller)
-  emptyFieldController(N, M, Children);
+  emptyFieldController(N, M, Children, PainterPid).
 
 
 %% manages the grid (empty field processes and other controllers)
 %% args: N: square root of the numbers of grid cells
 %%       M: pid of master process
 %%       All: a list of tuples containing the index and pid of each spawned process (by this controller)
-emptyFieldController(N, M, All)->
+emptyFieldController(N, M, All, PainterPid)->
   %This is the controller that is used after all the empty processes have been instantiated
   receive
     {grass, StillEmptyFields} ->
       io:format("Still Empty Fields: ~p~n", [StillEmptyFields]),
-      RabbitControllerPid = spawn(rabbit, rabbit_initializer, [self(), M, (N-2)*(N-2), StillEmptyFields]),
+      % TODO pass painter pid from first emtpyfieldcontroller to this
+      RabbitControllerPid = spawn(rabbit, rabbit_initializer, [self(), (N-2)*(N-2), StillEmptyFields, PainterPid]),
       Children = All ++ [{N*N + 2, RabbitControllerPid}], %adding second controller Pid (in this case the rabbit controller)
-      emptyFieldController(N, M, Children);
+      emptyFieldController(N, M, Children, PainterPid);
     {rabbit, StillEmptyFields} ->
       io:format("\e[0;34mRemaining Empty Fields: ~p~n \e[0;37m", [StillEmptyFields]), %Todo: send StillEmptyFields to next controller (e.g. foxes)
-      emptyFieldController(N, M, All);
-    {collect_count, Pid} -> Pid ! {empty, N*N}, emptyFieldController(N,M,All);
+      emptyFieldController(N, M, All, PainterPid);
+    {collect_count, Pid} -> Pid ! {empty, N*N}, emptyFieldController(N,M,All, PainterPid);
     {collect_info, Pid} ->
       element(2, lists:nth(N+2, All)) ! {collect_info, N, efc, Pid, []},
-      emptyFieldController(N, M, All);
+      emptyFieldController(N, M, All, PainterPid);
     {stop} ->
       [P ! {stop} || {_, P} <- utils:get_processes(All)],
       io:format("emptyController terminating, sending to all grid processes~n"),
