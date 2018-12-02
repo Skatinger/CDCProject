@@ -17,8 +17,8 @@
 %%        Master: pid of master process (maybe unecessary?)
 %%      EmptyFields: list of fields to spawn on
 grass_initializer(GridPid, Master, N, EmptyFields) ->
-  % get Index of fields to spawn on
-  SpawningPlaces = utils:get_spawning_places(rand:uniform(N), EmptyFields), %get indices of a random number of grid cells to spawn grass on
+  % get Index of fields to spawn on %Todo: make sure that not every empty field gets filled with grass -> causes error
+  SpawningPlaces = utils:get_spawning_places(rand:uniform(1), EmptyFields), %get indices of a random number of grid cells to spawn grass on
 
   % spawn grasses
   [spawn(?MODULE, start_grass, [Index]) || (Index) <- SpawningPlaces],

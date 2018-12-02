@@ -77,14 +77,15 @@ emptyFieldController(N, M, All)->
     {rabbit, StillEmptyFields} ->
       io:format("\e[0;34mRemaining Empty Fields: ~p~n \e[0;37m", [StillEmptyFields]), %Todo: send StillEmptyFields to next controller (e.g. foxes)
       emptyFieldController(N, M, All);
-    {collect_count, Pid} -> Pid ! {empty, All}, emptyFieldController(N,M,All);
+    {collect_count, Pid} -> Pid ! {empty, N*N}, emptyFieldController(N,M,All);
     {collect_info, Pid} ->
       element(2, lists:nth(N+2, All)) ! {collect_info, N, efc, Pid, []},
       emptyFieldController(N, M, All);
-    {stop} -> [P ! {stop} || {_, P} <- utils:get_processes(All)], io:format("emptyController terminating, sending to all grid processes~n"), M! ok
-  end
-%%  M ! ok %sends ok to Master to let him know, that he can terminate
-.
+    {stop} ->
+      [P ! {stop} || {_, P} <- utils:get_processes(All)],
+      io:format("emptyController terminating, sending to all grid processes~n"),
+      M! ok %sends ok to Master to let him know, that he can terminate
+  end.
 
 
 %=======================================================================================================================
@@ -92,7 +93,7 @@ emptyFieldController(N, M, All)->
 
 %% the empty field processes
 %% args: Index: Index of the field in the grid (or in the list of processes in the empty controller)
-%%       Neigh: list of his surrounding neighbours
+%%       Neigh: list of his surrounding neighbours (list of pids/border only, no tuple)
 %%       Occupant: the process currently on this field (can be an empty list if nothing is on it) (tuple with species (atom) an pid)
 empty(Index, [], [])->
   efc ! {Index, self()}, %send Pid of empty process to controller
@@ -107,14 +108,32 @@ empty(Index, [], [])->
 %%  end.
 empty(Index, Neigh, Occupant)->
   %TODO: pass array with status as parameter in send/receive
-  %TODO: empty processes should always be restarted (except when stop gets called)
   Right_Neighbour = lists:nth(5, Neigh),
   Left_Neighbour = lists:nth(4, Neigh),
 
 %%  io:format("Index of empty field: ~p~n", [I]),
   receive
+    {move, Direction} when Occupant /= []->
+      Desired_Field = lists:nth(Direction, Neigh),
+      io:format("\e[0;36mDESIRED FIELD ~p, Self: ~p, Occ: ~p~n\e[0;37m", [Desired_Field, self(), Occupant]),
+      if
+        Desired_Field == border -> erlang:element(2, Occupant) ! {border};
+        true -> Desired_Field ! {what, self()} %what stands for "what are you?"
+      end,
+      empty(Index, Neigh, Occupant);
+    {what, Pid} ->
+      io:format("\e[0;36mReceived what request ~p~n\e[0;37m", [self()]),
+      Pid ! {answer, utils:get_Occupant(Occupant), self()},
+      empty(Index, Neigh, Occupant); %receiving request to know what is on this field
+    {answer, Occupier, New_Field} when Occupant /= [] ->
+      io:format("\e[0;36msending answer back ~n\e[0;37m", []),
+      element(2, Occupant) ! {Occupier, {Index, New_Field}},
+      empty(Index, Neigh, Occupant);
+
+
     {grass, Pid} -> empty(Index, Neigh, {grass, Pid});
     {rabbit, Pid} -> empty(Index, Neigh, {rabbit, Pid});
+    {unregister} -> empty(Index, Neigh, []);
     {stop} -> io:format("shuting down process ~p~n", [self()]);
     {collect_info, N, NR, Pid, Info} when Index == N*N - (N + 1) ->
       Pid ! {collect_info, Info ++ [{Index, self(), Occupant}]}, %last process (bottom right corner)
@@ -126,4 +145,6 @@ empty(Index, Neigh, Occupant)->
         true -> Right_Neighbour ! {collect_info, N, NR, Pid, Info ++ [{Index, self(), Occupant}]}
       end,
       empty(Index, Neigh, Occupant)
-  end.
+  end
+  %Todo: if empty() has no occupant for a certain amount of time -> spawn grass (otherwise grass will disappear)
+.

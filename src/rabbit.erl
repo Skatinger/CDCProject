@@ -40,7 +40,7 @@ rabbit_initializer(GridPid, Master, N, EmptyFields) ->
   % get Index of fields to spawn on
   io:format("StillEMptyFields received in rabbit: ~p~n", [EmptyFields]),
 %%  io:format("Length of EmptyFields ~p~n", [EmptyFields]),
-  SpawningPlaces = utils:get_spawning_places(rand:uniform(length(EmptyFields)), EmptyFields), %get indices of a random number of grid cells to spawn rabbits on
+  SpawningPlaces = utils:get_spawning_places(rand:uniform(2), EmptyFields), %get indices of a random number of grid cells to spawn rabbits on
 
   % spawn rabbits
   [spawn(?MODULE, start_rabbit, [Index]) || (Index) <- SpawningPlaces],
@@ -83,13 +83,47 @@ rabbit(MyIndex, {State, Size, Age}) ->
   %% not dead, find food on neighbouring fields
 %%  Size = 1 + find_grass(neighbours),
 
-%%  io:format("Rabbit~n"),
-  timer:sleep(100),
-  rabbit(MyIndex, {State, Size, Age}).
+  %Todo: the above behaviour seems too complicated for the moment -> implement simple move behaviour below:
+
+  timer:sleep(500),
+  Rand = rand:uniform(8),
+  %send underlying empty field that the rabbit wants to moveelement(2, MyIndex) !
+  element(2, MyIndex) ! {move, Rand}, %Todo: implement behaviour
+  %receive what is currently on the field the rabbit wants to move to
+  receive %Pid is the pid of the desired field, so that the rabbit can register itself on it
+    {fox} -> io:format("Don't move! ~n"), rabbit(MyIndex, {State, Size, Age}); %Pid not necessary for fox, since rabbit wont move
+    {rabbit, {Index, Pid}} -> io:format("???? ~n"), rabbit(MyIndex, {State, Size, Age}); %mate?
+    {grass, {Index, Pid}} -> io:format("eating ~n"),rabbit(MyIndex, {State, Size, Age});
+    {[], {Index, Pid}} ->
+      io:format("\e[0;31mmove ~n\e[0;37m"), %desired field is an empty field
+      Pid ! {rabbit, self()}, %register at new field
+      element(2, MyIndex) ! {unregister},
+      rabbit({Index, Pid}, {State, Size, Age});
+    {border} -> io:format("end of the world (border) ~n"), rabbit(MyIndex, {State, Size, Age})
+  end.
+
+
+%%  rabbit(MyIndex, {State, Size, Age}).
 
 
 %% ------------------------ private ------------------------------------
 
+move(MyIndex) ->
+  %get random direction (1-8)
+  Rand = rand:uniform(8),
+  %send underlying empty field that the rabbit wants to moveelement(2, MyIndex) !
+  element(2, MyIndex) ! {move, Rand}, %Todo: implement behaviour
+  %receive what is currently on the field the rabbit wants to move to
+  receive %Pid is the pid of the desired field, so that the rabbit can register itself on it
+    {fox} -> io:format("Don't move! ~n"); %Pid not necessary for fox, since rabbit wont move
+    {rabbit, Pid} -> io:format("???? ~n"); %mate?
+    {grass, Pid} -> io:format("eating ~n");
+    {[], Pid} ->
+      io:format("\e[0;31mmove ~n\e[0;37m"), %desired field is an empty field
+      Pid ! {rabbit, self()}, %register at new field
+      element(2, MyIndex) ! {unregister};
+    {border} -> io:format("end of the world (border) ~n")
+  end.
 
 find_grass(Neighbours) ->
   [Pid ! what_are_you || Pid <- Neighbours],
