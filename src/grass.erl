@@ -52,7 +52,6 @@ grass_controller(N)->
 start_grass(MyIndex) ->
   Empty_Pid = element(2, MyIndex),
   Empty_Pid ! {grass, self()},
-  % TODO register to the empty-field of MyIndex
   grass(MyIndex, {ready, 0, 0}).
 
 %% own grid number, tuple of current state (eating, mating...), size, Age

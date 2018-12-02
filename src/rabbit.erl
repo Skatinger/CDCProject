@@ -10,34 +10,54 @@
 -author("alex").
 
 %% API
--export([rabbit_initializer/2, rabbit_controller/2]).
+-export([rabbit_initializer/4, rabbit_controller/1, start_rabbit/1]).
 
 
 %% ------------------------ public ------------------------------------
 
-%% controls rabbit population, and spawns it
-%% args:         N: number of rabbits to spawn initially
-%%     EmptyFields: EmptyFields to spawn on
-rabbit_controller(N, EmptyFields)->
-  % initialize rabbits with initmethod
-  %% spawn N of rabbits in the fields Fields
-  SpawningPlaces = utils:get_spawning_places(EmptyFields),
-  %%[spawn(?MODULE, rabbit_initializer, [Index, {ready, 0, 0}]) || (Index) <- SpawningPlaces]
-
-  io:format("species-controller~n",[]).
-
-
-
-
-%% called on new rabbit
-%% args: MyIndex: index in field
-%%           Pid: pid of the host-processor on this index
-rabbit_initializer(MyIndex, Pid) ->
-  %% register self with empty node
+%% keeps track of rabbit count
+%% args:  Master: Pid of Masterprocess
+%%             N: current number of grasses
+%%      Children: Processes spawned by grass_initializer
+rabbit_controller(N) ->
+  receive
+    {collect_info, PainterPid} ->
+      PainterPid ! {grass, N},
+      rabbit_controller(N);
+    {died} -> rabbit_controller(N - 1);
+    {spawned} -> rabbit_controller(N + 1);
+    {stop} -> ok
+  end,
+  io:format("rabbit_controller ending~n", []).
 
 
-  io:format("species-controller~n",[]).
+%% initializes all rabbit processes
+%% args: GridPid: pid of grid-process
+%%        Master: pid of master process (maybe unnecessary?)
+%%             N: square root of grid size (maybe unnecessary?)
+%%   EmptyFields: list of fields to spawn on
+rabbit_initializer(GridPid, Master, N, EmptyFields) ->
+  % get Index of fields to spawn on
+  io:format("StillEMptyFields received in rabbit: ~p~n", [EmptyFields]),
+%%  io:format("Length of EmptyFields ~p~n", [EmptyFields]),
+  SpawningPlaces = utils:get_spawning_places(rand:uniform(length(EmptyFields)), EmptyFields), %get indices of a random number of grid cells to spawn rabbits on
 
+  % spawn rabbits
+  [spawn(?MODULE, start_rabbit, [Index]) || (Index) <- SpawningPlaces],
+
+  % send still empty fields back to grid
+  io:format("\e[0;32mSpawning places (rabbit) ~p~n \e[0;37m", [SpawningPlaces]),
+  StillEmptyFields = [Element || Element <- EmptyFields, not(lists:member(Element, SpawningPlaces))],
+  GridPid ! {rabbit, StillEmptyFields},
+
+  % start controller
+  rabbit_controller(N).
+
+
+start_rabbit(MyIndex) ->
+  Empty_Pid = element(2, MyIndex),
+  Empty_Pid ! {rabbit, self()},
+  rabbit(MyIndex, {ready, 0, 0}).
 
 %% Simulates the behavior of a rabbit
 %% args: MyIndex: index on grid
@@ -61,9 +81,9 @@ rabbit(MyIndex, {State, Size, Age}) ->
   %end,
 
   %% not dead, find food on neighbouring fields
-  Size = 1 + find_grass(neighbours),
+%%  Size = 1 + find_grass(neighbours),
 
-  io:format("Rabbit~n"),
+%%  io:format("Rabbit~n"),
   timer:sleep(100),
   rabbit(MyIndex, {State, Size, Age}).
 

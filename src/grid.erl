@@ -48,7 +48,7 @@ emptyFieldController(N, M, [])->
   %% receive {EmptyFields} -> io:format("should now spawn next controller with emptyfields, and add its pid to controllerPids list..~n") end,
   %spawn(all other controllers, args),
 
-  ControllerPids = [GrassControllerPid],
+  ControllerPids = [GrassControllerPid], %unnecessary? empty process has a list of all processes (incl. controllers)
 
 
   List_of_Neigh = lists:reverse(utils:init_neighbours(N, Empty_Processes1, (N-2)*(N-2), List_of_Pids, [])), %initialise a list of all possible neighbours for each process
@@ -70,7 +70,12 @@ emptyFieldController(N, M, All)->
   %This is the controller that is used after all the empty processes have been instantiated
   receive
     {grass, StillEmptyFields} ->
-      io:format("Still Empty Fields: ~p~n", [StillEmptyFields]), %Todo: send StillEmptyFields to next controller (e.g. rabbits)
+      io:format("Still Empty Fields: ~p~n", [StillEmptyFields]),
+      RabbitControllerPid = spawn(rabbit, rabbit_initializer, [self(), M, (N-2)*(N-2), StillEmptyFields]),
+      Children = All ++ [{N*N + 2, RabbitControllerPid}], %adding second controller Pid (in this case the rabbit controller)
+      emptyFieldController(N, M, Children);
+    {rabbit, StillEmptyFields} ->
+      io:format("\e[0;34mRemaining Empty Fields: ~p~n \e[0;37m", [StillEmptyFields]), %Todo: send StillEmptyFields to next controller (e.g. foxes)
       emptyFieldController(N, M, All);
     {collect_count, Pid} -> Pid ! {empty, All}, emptyFieldController(N,M,All);
     {collect_info, Pid} ->
@@ -109,6 +114,7 @@ empty(Index, Neigh, Occupant)->
 %%  io:format("Index of empty field: ~p~n", [I]),
   receive
     {grass, Pid} -> empty(Index, Neigh, {grass, Pid});
+    {rabbit, Pid} -> empty(Index, Neigh, {rabbit, Pid});
     {stop} -> io:format("shuting down process ~p~n", [self()]);
     {collect_info, N, NR, Pid, Info} when Index == N*N - (N + 1) ->
       Pid ! {collect_info, Info ++ [{Index, self(), Occupant}]}, %last process (bottom right corner)
