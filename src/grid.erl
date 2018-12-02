@@ -41,8 +41,13 @@ emptyFieldController(N, M, [])->
   Empty_Processes = [{utils:get_index(Index, N, 2*N, 0), Pid} || {Index, Pid} <- Empty_Processes1], %list of real processes (properly indexed)
   io:format("\e[0;31mArray: ~p~n \e[0;37m", [Empty_Processes]),
 
+
+  % receive pid of painter to pass to controllers
+  PainterPid = receive {painter_pid, PainterPid} -> PainterPid end,
+  io:format("RECEIVED PPPPPPPPPPPPPPPPPPainter pid ~p~n", [PainterPid]),
+
   % spawn grass controller first
-  GrassControllerPid = spawn(grass, grass_initializer, [self(), M, (N-2)*(N-2), Empty_Processes]),
+  GrassControllerPid = spawn(grass, grass_initializer, [self(), (N-2)*(N-2), Empty_Processes, PainterPid]),
   % and receive fields that are still empty from grasscontroller
   %Todo: see below
   %% receive {EmptyFields} -> io:format("should now spawn next controller with emptyfields, and add its pid to controllerPids list..~n") end,

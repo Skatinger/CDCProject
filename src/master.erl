@@ -42,10 +42,19 @@
 
 start(N, G, R, F) ->
   io:format("me: ~p~n", [self()]),
-  register(efc, spawn(grid, emptyFieldController, [N, self(), []])), %create frame around grid with field containing an atom (saying end)
-  register(painter, spawn(visual, painter, [N])), %% create painter which paints field every timestep
+  EfcPid = spawn(grid, emptyFieldController, [N, self(), []]), %create frame around grid with field containing an atom (saying end)
+  PainterPid = spawn(visual, painter, [N, [EfcPid]]), %% create painter which paints field every timestep
+
+  % inform grid about painter pid
+  EfcPid ! {painter_pid, PainterPid},
+
+  % todo this is depracated
+  register(efc, EfcPid),
+  register(painter, PainterPid),
+
+
   timer:sleep(10000),
-  stop(efc, painter),
+  stop(EfcPid, PainterPid),
   receive
     ok -> io:format("==== terminating now ====~n", [])
   end

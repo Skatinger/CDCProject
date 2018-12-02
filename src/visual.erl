@@ -10,14 +10,14 @@
 -author("alex").
 
 %% API
--export([painter/1]).
+-export([painter/2]).
 
 %% ========== visual methods ===============
 
 %% puts species counts and calls the grid-painter
-painter(Grid) -> %Grid is the same as N in grid.erl
+painter(Grid, ControllerPids) -> %Grid is the same as N in grid.erl
 %%  [list_to_atom(integer_to_list(X)) ! {hello} || X <- lists:seq(1, 9)], %only used for testing (send message to registered empty fields)
-  SpeciesCounts = get_species_counts(),
+  SpeciesCounts = get_species_counts(ControllerPids),
   GridState = get_grid_state(),
   io:format("======= INFO ========~n", []),
   io:format("== Current Species Counts: ==~n ] ~p~n", [SpeciesCounts]),
@@ -25,7 +25,7 @@ painter(Grid) -> %Grid is the same as N in grid.erl
   receive
     {stop} -> io:format("terminating painter~n")
   after
-    1000 ->  painter(Grid)
+    1000 ->  painter(Grid, ControllerPids)
   end
 .
 
@@ -44,15 +44,10 @@ paint_grid([{Index, State, Occupant}|T], N) ->
   end,
   paint_grid(T, N).
 
-%% gets all counts of species from controllers
-get_species_counts() ->
-  efc ! {collect_count, self()},
-  % grass_controller ! collect_info,
-  % rabbit_controller ! collect_info,
-  % fox_controller ! collect_info,
-  %The line below is how it should look like when all controller have been implemented
-  %SpeciesCounts = [receive {Species, Count} -> [{Species, Count}] end || _ <- lists:seq(1, 3)],
-  SpeciesCounts = receive {Species, Count} -> [{Species, Count}] end,
+%% gets all counts of species from controllers saved in ControllerPids
+get_species_counts(ControllerPids) ->
+  [Pid ! {collect_count, self()} || Pid <- ControllerPids],
+  SpeciesCounts = [receive {Species, Count} -> [{Species, Count}] end || _ <- ControllerPids],
   SpeciesCounts.
 
 %% sends message to first process and waits for the list to pass through grid and come back (replace first process with controller)
