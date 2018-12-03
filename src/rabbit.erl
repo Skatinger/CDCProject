@@ -24,7 +24,7 @@ rabbit_initializer(GridPid, N, EmptyFields, PainterPid) ->
   % get Index of fields to spawn on
   io:format("StillEMptyFields received in rabbit: ~p~n", [EmptyFields]),
 %%  io:format("Length of EmptyFields ~p~n", [EmptyFields]),
-  SpawningPlaces = utils:get_spawning_places(rand:uniform(2), EmptyFields), %get indices of a random number of grid cells to spawn rabbits on
+  SpawningPlaces = utils:get_spawning_places(rand:uniform(4), EmptyFields), %get indices of a random number of grid cells to spawn rabbits on
 
   % spawn rabbits
   [spawn(?MODULE, start_rabbit, [Index]) || (Index) <- SpawningPlaces],
@@ -98,8 +98,13 @@ rabbit(MyIndex, {State, Size, Age}) ->
     {[], {Index, Pid}} ->
       io:format("\e[0;31mmove ~n\e[0;37m"), %desired field is an empty field
       Pid ! {rabbit, self()}, %register at new field
-      element(2, MyIndex) ! {unregister},
-      rabbit({Index, Pid}, {State, Size, Age});
+      receive
+        {ok} ->
+          element(2, MyIndex) ! {unregister},
+          rabbit({Index, Pid}, {State, Size, Age});
+        {occupied} -> rabbit(MyIndex, {State, Size, Age})
+      end;
+
     {border} -> io:format("end of the world (border) ~n"), rabbit(MyIndex, {State, Size, Age})
   end.
 
