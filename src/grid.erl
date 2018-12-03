@@ -137,7 +137,14 @@ empty(Index, Neigh, Occupant)->
 
 
     {grass, Pid} -> empty(Index, Neigh, {grass, Pid});
-    {rabbit, Pid} -> empty(Index, Neigh, {rabbit, Pid});
+    {rabbit, Pid} ->
+      Occupier = utils:get_Occupant(Occupant),
+      io:format("\e[0;31mCurrent Occupier ~p ~n\e[0;37m", [Occupier]),
+      if
+        Occupier == grass -> element(2, Occupant) ! {eaten}, empty(Index, Neigh, {rabbit, Pid});
+        true -> empty(Index, Neigh, {rabbit, Pid})
+      end;
+%%empty(Index, Neigh, {rabbit, Pid});
     {unregister} -> empty(Index, Neigh, []);
     {stop} -> io:format("shuting down process ~p~n", [self()]);
     {collect_info, N, NR, Pid, Info} when Index == N*N - (N + 1) ->

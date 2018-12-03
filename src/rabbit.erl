@@ -46,13 +46,12 @@ rabbit_initializer(GridPid, N, EmptyFields, PainterPid) ->
 rabbit_controller(N) ->
   receive
     {collect_count, PainterPid} ->
-      PainterPid ! {grass, N},
+      PainterPid ! {rabbit, N},
       rabbit_controller(N);
     {died} -> rabbit_controller(N - 1);
     {spawned} -> rabbit_controller(N + 1);
-    {stop} -> ok
-  end,
-  io:format("rabbit_controller ending~n", []).
+    {stop} -> ok, io:format("rabbit_controller ending~n", [])
+  end.
 
 
 
@@ -95,7 +94,7 @@ rabbit(MyIndex, {State, Size, Age}) ->
   receive %Pid is the pid of the desired field, so that the rabbit can register itself on it
     {fox} -> io:format("Don't move! ~n"), rabbit(MyIndex, {State, Size, Age}); %Pid not necessary for fox, since rabbit wont move
     {rabbit, {Index, Pid}} -> io:format("???? ~n"), rabbit(MyIndex, {State, Size, Age}); %mate?
-    {grass, {Index, Pid}} -> io:format("eating ~n"),rabbit(MyIndex, {State, Size, Age});
+    {grass, {Index, Pid}} -> io:format("eating ~n"), Pid ! {rabbit, self()}, element(2, MyIndex) ! {unregister}, rabbit({Index, Pid}, {State, Size, Age});
     {[], {Index, Pid}} ->
       io:format("\e[0;31mmove ~n\e[0;37m"), %desired field is an empty field
       Pid ! {rabbit, self()}, %register at new field
@@ -110,6 +109,7 @@ rabbit(MyIndex, {State, Size, Age}) ->
 
 %% ------------------------ private ------------------------------------
 
+%move was planned as a function, but since it didn't quite work, it has been moved to the function above
 move(MyIndex) ->
   %get random direction (1-8)
   Rand = rand:uniform(8),

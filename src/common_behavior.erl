@@ -17,9 +17,9 @@
 % this doesnt work yet TODO implement it for grass
 die(MyIndex, Species, {State, Size, Age}, ControllerPid) ->
   % maybe some info about being dead, inform current place
-  io:format("\033[92m bye bye from ~p\033[92m~n", [Species]),
+  io:format("\033[92m bye bye from ~p\e[0;37m~n", [Species]),
   % inform empty field of death
-  element(2, MyIndex) ! {unregister},
+%%  element(2, MyIndex) ! {unregister}, %Don't use this (at least not for grass), because this would unregister the current process (which at this point is already a rabbit)
   % inform controller of death
   ControllerPid ! {died},
   exit(0).

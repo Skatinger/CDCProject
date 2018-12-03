@@ -10,7 +10,7 @@
 -author("alex").
 
 %% API
--export([grass_initializer/4, start_grass/1, grass_controller/1]).
+-export([grass_initializer/4, start_grass/2, grass_controller/1]).
 
 %% initializes all grass processes
 %% args: GridPid: pid of grid-process
@@ -21,7 +21,7 @@ grass_initializer(GridPid, N, EmptyFields, PainterPid) ->
   SpawningPlaces = utils:get_spawning_places(rand:uniform(1), EmptyFields), %get indices of a random number of grid cells to spawn grass on
 
   % spawn grasses
-  [spawn(?MODULE, start_grass, [Index]) || (Index) <- SpawningPlaces],
+  [spawn(?MODULE, start_grass, [Index, self()]) || (Index) <- SpawningPlaces],
 
   % send still empty fields back to grid
   io:format("\e[0;32mSpawning places ~p~n \e[0;37m", [SpawningPlaces]),
@@ -46,22 +46,21 @@ grass_controller(N)->
       grass_controller(N);
     {died} -> grass_controller(N-1);
     {spawned} -> grass_controller(N+1);
-    {stop} -> ok
-  end,
-  io:format("grass_controller ending~n",[]).
+    {stop} -> ok, io:format("grass_controller ending~n",[])
+  end.
 
 
-start_grass(MyIndex) ->
+start_grass(MyIndex, GrassControllerPid) ->
   Empty_Pid = element(2, MyIndex),
   Empty_Pid ! {grass, self()},
-  grass(MyIndex, {ready, 0, 0}).
+  grass(MyIndex, {ready, 0, 0}, GrassControllerPid).
 
 %% own grid number, tuple of current state (eating, mating...), size, Age
-grass(MyIndex, {State, Size, Age}) ->
+grass(MyIndex, {State, Size, Age}, GrassControllerPid) ->
   %% pass_field_info({self(), State, Size, Age}),
   %% check if got eaten
   receive
-    {eaten} -> common_behavior:die(MyIndex, {State, Size, Age})
+    {eaten} -> common_behavior:die(MyIndex, grass, {State, Size, Age}, GrassControllerPid)
   after 5 -> ok
   end,
 
@@ -77,5 +76,5 @@ grass(MyIndex, {State, Size, Age}) ->
   %  true -> ok
   %end,
 
-  grass(MyIndex, {State, Size + 1, Age + 1}).
+  grass(MyIndex, {State, Size + 1, Age + 1}, GrassControllerPid).
 
