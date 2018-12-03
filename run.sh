@@ -15,5 +15,5 @@
 
 # works
 cd ebin
-erl -pa ebin -eval "master:start(5,5,5,5)" -eval "init:stop()"
+erl -pa ebin -eval "application:start(cdcproject)" -eval "init:stop()"
 

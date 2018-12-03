@@ -4,12 +4,11 @@ SRCDIR=src
 LOGDIR=logs
 BEAMDIR=./ebin
 
-
-all: 
+all:
 	@ mkdir -p $(BEAMDIR) ;
 	@ $(ERLC) $(ERLCFLAGS) $(BEAMDIR) $(SRCDIR)/*.erl ;
 	@ mkdir -p $(LOGDIR) ;
 	
 clean: 
 	@ rm -rf $(BEAMDIR) ;
-	@ rm -rf erl_crush.dump
+	@ rm -rf erl_crash.dump
