@@ -58,7 +58,7 @@ rabbit_controller(N) ->
 start_rabbit(MyIndex) ->
   Empty_Pid = element(2, MyIndex),
   Empty_Pid ! {rabbit, self()},
-  receive {ok, _} -> ok end,
+  receive {ok} -> ok end, %wait for ok from empty field
   rabbit(MyIndex, {ready, 0, 0}).
 
 %% Simulates the behavior of a rabbit
@@ -97,17 +97,14 @@ rabbit(MyIndex, {State, Size, Age}) ->
     {rabbit, {Index, Pid}} -> io:format("???? ~n"), rabbit(MyIndex, {State, Size, Age}); %mate?
     {grass, {Index, Pid}} -> io:format("eating ~n"), Pid ! {rabbit, self()}, element(2, MyIndex) ! {unregister}, rabbit({Index, Pid}, {State, Size, Age});
     {[], {Index, Pid}} ->
-      io:format("\e[0;31mmove ~n\e[0;37m"), %desired field is an empty field
+%%      io:format("\e[0;31mmove ~n\e[0;37m"), %desired field is an empty field
       Pid ! {rabbit, self()}, %register at new field
-      io:format("Waiting for incoming messages....~p ~n", [self()]),
-%%      timer:sleep(5),
       receive
-        {occupied} -> io:format("\33[33mDOes this get called, no sayer: ~p?~n\e[0;37m", [Pid]) ,rabbit(MyIndex, {State, Size, Age});
-        {ok, P} ->
-          io:format("\33[33mIts ok for ~p, from: ~p ~p~n\e[0;37m", [self(), P, os:timestamp()]),
-          element(2, MyIndex) ! {unregister},
+        {occupied} -> rabbit(MyIndex, {State, Size, Age}); %field is already occupied (happens if zwo rabbits try to register at the same time on the same field)
+        {ok} ->
+          element(2, MyIndex) ! {unregister}, %unregister from old field
           rabbit({Index, Pid}, {State, Size, Age});
-        _ -> io:format("============WTF========~n")
+        _ -> io:format("============ WTF ========~n")
       end;
 
     {border} -> io:format("end of the world (border) ~n"), rabbit(MyIndex, {State, Size, Age})

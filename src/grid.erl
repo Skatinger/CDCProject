@@ -112,40 +112,33 @@ empty(Index, [], [])->
 %%      io:format("updating own state and informing neighbours~n")
 %%  end.
 empty(Index, Neigh, Occupant)->
-  %TODO: pass array with status as parameter in send/receive
   Right_Neighbour = lists:nth(5, Neigh),
   Left_Neighbour = lists:nth(4, Neigh),
 
-%%  io:format("Index of empty field: ~p~n", [I]),
   receive
-    {move, Direction} when Occupant /= []->
+    {move, Direction} when Occupant /= []-> %receive move request from occupant
       Desired_Field = lists:nth(Direction, Neigh),
-      io:format("\e[0;36mDESIRED FIELD ~p, Self: ~p, Occ: ~p~n\e[0;37m", [Desired_Field, self(), Occupant]),
       if
         Desired_Field == border -> erlang:element(2, Occupant) ! {border};
-        true -> Desired_Field ! {what, self()} %what stands for "what are you?"
+        true -> Desired_Field ! {what, self()} %asking desired field what is currently residing on it"
       end,
       empty(Index, Neigh, Occupant);
-    {what, Pid} ->
-      io:format("\e[0;36mReceived what request ~p~n\e[0;37m", [self()]),
+    {what, Pid} -> %answering to questioner with his current occupant
       Pid ! {answer, utils:get_Occupant(Occupant), self()},
-      empty(Index, Neigh, Occupant); %receiving request to know what is on this field
-    {answer, Occupier, New_Field} when Occupant /= [] ->
-      io:format("\e[0;36msending answer back ~n\e[0;37m", []),
+      empty(Index, Neigh, Occupant);
+    {answer, Occupier, New_Field} when Occupant /= [] -> %sending answer back to occupant
       element(2, Occupant) ! {Occupier, {Index, New_Field}},
       empty(Index, Neigh, Occupant);
 
 
-    {grass, Pid} -> empty(Index, Neigh, {grass, Pid});
+    {grass, Pid} -> empty(Index, Neigh, {grass, Pid}); %register grass
     {rabbit, Pid} ->
       Occupier = utils:get_Occupant(Occupant),
-      io:format("\e[0;31mCurrent Occupier ~p ~n\e[0;37m", [Occupant]),
       if
         Occupier == grass -> element(2, Occupant) ! {eaten}, empty(Index, Neigh, {rabbit, Pid});
-        Occupier == rabbit -> Pid ! {occupied}, io:format("\33[33mOCCUPADO to ~p, Ocupnt: ~p, ~p~n\e[0;37m", [Pid, Occupant, os:timestamp()]), empty(Index, Neigh, Occupant);
-        true -> Me = self(), Pid ! {ok, Me}, io:format("sending ok from ~p to ~p, ~p~n", [self(), Pid, os:timestamp()]), empty(Index, Neigh, {rabbit, Pid})
+        Occupier == rabbit -> Pid ! {occupied}, empty(Index, Neigh, Occupant); %when two processes try to move to the same field at the same time -> the second one gets denied
+        true -> Pid ! {ok}, empty(Index, Neigh, {rabbit, Pid}) %register rabbit
       end;
-%%empty(Index, Neigh, {rabbit, Pid});
     {unregister} -> empty(Index, Neigh, []);
     {stop} -> io:format("shuting down process ~p~n", [self()]);
     {collect_info, N, NR, Pid, Info} when Index == N*N - (N + 1) ->
@@ -158,7 +151,7 @@ empty(Index, Neigh, Occupant)->
         true -> Right_Neighbour ! {collect_info, N, NR, Pid, Info ++ [{Index, self(), Occupant}]}
       end,
       empty(Index, Neigh, Occupant);
-    _ -> ok, io:format("----------------------Self: ~p, Occupant: ~p~n", [self(), Occupant]), empty(Index, Neigh, Occupant) %handling unexpected messages
+    _ -> ok, io:format("----------------------~n", []), empty(Index, Neigh, Occupant) %handling unexpected messages
   end
   %Todo: if empty() has no occupant for a certain amount of time -> spawn grass (otherwise grass will disappear)
   %cannot use receive after, because of collect_info
