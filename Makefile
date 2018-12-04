@@ -7,7 +7,7 @@ BEAMDIR=./ebin
 all:
 	@ mkdir -p $(BEAMDIR) ;
 	@ $(ERLC) $(ERLCFLAGS) $(BEAMDIR) $(SRCDIR)/*.erl ;
-	@ mkdir -p $(LOGDIR) ;
+
 	
 clean: 
 	@ rm -rf $(BEAMDIR) ;
