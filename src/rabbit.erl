@@ -24,7 +24,7 @@ rabbit_initializer(GridPid, N, EmptyFields, PainterPid) ->
   % get Index of fields to spawn on
   io:format("StillEMptyFields received in rabbit: ~p~n", [EmptyFields]),
 %%  io:format("Length of EmptyFields ~p~n", [EmptyFields]),
-  SpawningPlaces = utils:get_spawning_places(rand:uniform(2), EmptyFields), %get indices of a random number of grid cells to spawn rabbits on
+  SpawningPlaces = utils:get_spawning_places(4, EmptyFields), %get indices of a random number of grid cells to spawn rabbits on
 
   % spawn rabbits
   [spawn(?MODULE, start_rabbit, [Index]) || (Index) <- SpawningPlaces],
@@ -58,6 +58,7 @@ rabbit_controller(N) ->
 start_rabbit(MyIndex) ->
   Empty_Pid = element(2, MyIndex),
   Empty_Pid ! {rabbit, self()},
+  receive {ok} -> ok end, %wait for ok from empty field
   rabbit(MyIndex, {ready, 0, 0}).
 
 %% Simulates the behavior of a rabbit
@@ -88,7 +89,7 @@ rabbit(MyIndex, {State, Size, Age}) ->
 
   timer:sleep(500),
   Rand = rand:uniform(8),
-  %send underlying empty field that the rabbit wants to moveelement(2, MyIndex) !
+  %send underlying empty field that the rabbit wants to move
   element(2, MyIndex) ! {move, Rand}, %Todo: implement behaviour
   %receive what is currently on the field the rabbit wants to move to
   receive %Pid is the pid of the desired field, so that the rabbit can register itself on it
@@ -96,10 +97,16 @@ rabbit(MyIndex, {State, Size, Age}) ->
     {rabbit, {Index, Pid}} -> io:format("???? ~n"), rabbit(MyIndex, {State, Size, Age}); %mate?
     {grass, {Index, Pid}} -> io:format("eating ~n"), Pid ! {rabbit, self()}, element(2, MyIndex) ! {unregister}, rabbit({Index, Pid}, {State, Size, Age});
     {[], {Index, Pid}} ->
-      io:format("\e[0;31mmove ~n\e[0;37m"), %desired field is an empty field
+%%      io:format("\e[0;31mmove ~n\e[0;37m"), %desired field is an empty field
       Pid ! {rabbit, self()}, %register at new field
-      element(2, MyIndex) ! {unregister},
-      rabbit({Index, Pid}, {State, Size, Age});
+      receive
+        {occupied} -> rabbit(MyIndex, {State, Size, Age}); %field is already occupied (happens if zwo rabbits try to register at the same time on the same field)
+        {ok} ->
+          element(2, MyIndex) ! {unregister}, %unregister from old field
+          rabbit({Index, Pid}, {State, Size, Age});
+        _ -> io:format("============ WTF ========~n")
+      end;
+
     {border} -> io:format("end of the world (border) ~n"), rabbit(MyIndex, {State, Size, Age})
   end.
 
