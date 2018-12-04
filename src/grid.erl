@@ -142,8 +142,8 @@ empty(Index, Neigh, Occupant)->
       io:format("\e[0;31mCurrent Occupier ~p ~n\e[0;37m", [Occupant]),
       if
         Occupier == grass -> element(2, Occupant) ! {eaten}, empty(Index, Neigh, {rabbit, Pid});
-        Occupier == rabbit -> Pid ! {occupied}, empty(Index, Neigh, Occupant);
-        true -> Pid ! {ok}, empty(Index, Neigh, {rabbit, Pid})
+        Occupier == rabbit -> Pid ! {occupied}, io:format("\33[33mOCCUPADO to ~p, Ocupnt: ~p, ~p~n\e[0;37m", [Pid, Occupant, os:timestamp()]), empty(Index, Neigh, Occupant);
+        true -> Me = self(), Pid ! {ok, Me}, io:format("sending ok from ~p to ~p, ~p~n", [self(), Pid, os:timestamp()]), empty(Index, Neigh, {rabbit, Pid})
       end;
 %%empty(Index, Neigh, {rabbit, Pid});
     {unregister} -> empty(Index, Neigh, []);
@@ -158,7 +158,7 @@ empty(Index, Neigh, Occupant)->
         true -> Right_Neighbour ! {collect_info, N, NR, Pid, Info ++ [{Index, self(), Occupant}]}
       end,
       empty(Index, Neigh, Occupant);
-    _ -> ok, io:format("----------------------~n"), empty(Index, Neigh, Occupant) %handling unexpected messages
+    _ -> ok, io:format("----------------------Self: ~p, Occupant: ~p~n", [self(), Occupant]), empty(Index, Neigh, Occupant) %handling unexpected messages
   end
   %Todo: if empty() has no occupant for a certain amount of time -> spawn grass (otherwise grass will disappear)
   %cannot use receive after, because of collect_info
