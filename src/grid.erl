@@ -8,6 +8,9 @@
 -module(grid).
 -author("alex, jonas").
 
+%% --------- cool and fancy code (keeping it for show-off):
+% [register(list_to_atom(integer_to_list(utils:get_index(H, N, 2*N, 0))),spawn(?MODULE, empty, [H, [], []])) || H <- Inner],
+
 %% API
 -export([empty/3, emptyFieldController/3]).
 
@@ -25,10 +28,9 @@ emptyFieldController(N, M, [])->
 
   [efc ! {H, border} || H <- Frame], %send a message to itself to register border in list of PID's
   Inner = lists:subtract(All, Frame), %remaining processes (= all grid processes which are not border)
-  % keeping it for show-off: [register(list_to_atom(integer_to_list(utils:get_index(H, N, 2*N, 0))),spawn(?MODULE, empty, [H, [], []])) || H <- Inner],
+  % spawn grid-field processes
   [spawn(?MODULE, empty, [H, [], []]) || H <- Inner],
 
-  %TODO: maybe change the above send and below receive, since its in the same function (no send/receive should be necessary)
   Pid_list = [receive {I, Pid} -> (lists:sublist(All,I-1) ++ [{I, Pid}] ++ lists:nthtail(I,All)) end || I <- lists:seq(1, N*N)], %receive a list of tuples {Index, PID} for each process on the grid (incl. border)
   List_of_Pids = utils:remove_indices(lists:flatten(Pid_list)), %turn it into a single list and remove superfluous indices
 
@@ -39,16 +41,6 @@ emptyFieldController(N, M, [])->
   % receive pid of painter to pass to controllers
   PainterPid = receive {painter_pid, PainterPid} -> PainterPid end,
 
-  % spawn grass controller first
-  GrassControllerPid = spawn(grass, grass_initializer, [self(), (N-2)*(N-2), Empty_Processes, PainterPid]),
-  % and receive fields that are still empty from grasscontroller
-  %Todo: see below
-  %% receive {EmptyFields} -> io:format("should now spawn next controller with emptyfields, and add its pid to controllerPids list..~n") end,
-  %spawn(all other controllers, args),
-
-  ControllerPids = [GrassControllerPid], %unnecessary? empty process has a list of all processes (incl. controllers)
-
-
   List_of_Neigh = lists:reverse(utils:init_neighbours(N, Empty_Processes1, (N-2)*(N-2), List_of_Pids, [])), %initialise a list of all possible neighbours for each process
   [Empty_Field ! {init, lists:nth(utils:get_index(Ind, N, 2*N, 0), List_of_Neigh)} || {Ind, Empty_Field} <-Empty_Processes1], %send each process its list of neighbours
 
@@ -56,27 +48,34 @@ emptyFieldController(N, M, [])->
   %can be removed once the emptyController below is properly implemented
 
   % list of all processes spawned by this one, which should be terminated upon receiving stop
-  Children = List_of_Pids ++ [{N*N + 1, lists:nth(1, ControllerPids)}], %adding first controller Pid (in this case the grass controller)
-  emptyFieldController(N, M, Children, PainterPid).
+  % Children = List_of_Pids, %  ++ [{N*N + 1, lists:nth(1, ControllerPids)}], %adding first controller Pid (in this case the grass controller)
 
+  % spawn grass controller first
+  ControllerPid = spawn(grass, grass_initializer, [self(), (N-2)*(N-2), Empty_Processes, PainterPid]),
+  % spawn rest of controllers
+  initialize_controllers(N, M, List_of_Pids, PainterPid).
+
+%% starts all controllers, passing the still empty fields to each one, then start emptyFieldController
+initialize_controllers(N, M, List_of_Pids, PainterPid) ->
+  % receive still empty fields and spawn rabbit controller
+  receive
+    {grass, StillEmptyFields} ->
+      RabbitControllerPid = spawn(rabbit, rabbit_initializer, [self(), (N-2)*(N-2), StillEmptyFields, PainterPid]),
+      Children = List_of_Pids ++ [{N*N + 2, RabbitControllerPid}], %adding second controller Pid (in this case the rabbit controller)
+      initialize_controllers(N, M, Children, PainterPid);
+
+    {rabbit, StillEmptyFields} -> emptyFieldController(N, M, List_of_Pids, PainterPid)
+  end.
 
 %% manages the grid (empty field processes and other controllers)
 %% args: N: square root of the numbers of grid cells
 %%       M: pid of master process
 %%       All: a list of tuples containing the index and pid of each spawned process (by this controller)
-emptyFieldController(N, M, All, PainterPid)->
+emptyFieldController(N, M, All, PainterPid) ->
   %This is the controller that is used after all the empty processes have been instantiated
   receive
+    % empty fields trying to spawn grass on itself
     {spawn, Index} -> element(2, Index) ! {gc, lists:nth(N*N+1, All), N}, emptyFieldController(N, M, All, PainterPid);
-    {grass, StillEmptyFields} ->
-      io:format("Still Empty Fields: ~p~n", [StillEmptyFields]),
-      % TODO pass painter pid from first emtpyfieldcontroller to this
-      RabbitControllerPid = spawn(rabbit, rabbit_initializer, [self(), (N-2)*(N-2), StillEmptyFields, PainterPid]),
-      Children = All ++ [{N*N + 2, RabbitControllerPid}], %adding second controller Pid (in this case the rabbit controller)
-      emptyFieldController(N, M, Children, PainterPid);
-    {rabbit, StillEmptyFields} ->
-      io:format("\e[0;34mRemaining Empty Fields: ~p~n \e[0;37m", [StillEmptyFields]), %Todo: send StillEmptyFields to next controller (e.g. foxes)
-      emptyFieldController(N, M, All, PainterPid);
     {collect_count, Pid} -> Pid ! {empty, N*N}, emptyFieldController(N,M,All, PainterPid);
     {collect_info, Pid} ->
       element(2, lists:nth(N+2, All)) ! {collect_info, N, efc, Pid, []},
