@@ -117,7 +117,7 @@ rabbit(MyIndex, {State, Size, Age}) ->
         {registered} ->
           element(2, MyIndex) ! {unregister, rabbit}, %unregister from old field
           rabbit({Index, Pid}, {State, Size - 1, Age + 1});
-        _ -> io:format("============ WTF ========~n"), rabbit(MyIndex, {State, Size -1, Age + 1})
+        _ -> io:format("============ WTF ======== ~p~n", [self()]), rabbit(MyIndex, {State, Size -1, Age + 1})
       end;
     {border} -> io:format("end of the world (border) ~n"), rabbit(MyIndex, {State, Size - 1, Age + 1})
   end.
