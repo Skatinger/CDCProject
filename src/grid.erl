@@ -73,6 +73,8 @@ emptyFieldController(N, M, [])->
 emptyFieldController(N, M, All, PainterPid)->
   %This is the controller that is used after all the empty processes have been instantiated
   receive
+%%    {spawn, Index} -> spawn(grass, start_grass, [Index, element(2, lists:nth(N*N+1, All))]), emptyFieldController(N, M, All, PainterPid);
+    {spawn, Index} -> element(2, Index) ! {gc, lists:nth(N*N+1, All), N}, emptyFieldController(N, M, All, PainterPid);
     {grass, StillEmptyFields} ->
       io:format("Still Empty Fields: ~p~n", [StillEmptyFields]),
       % TODO pass painter pid from first emtpyfieldcontroller to this
@@ -114,8 +116,18 @@ empty(Index, [], [])->
 empty(Index, Neigh, Occupant)->
   Right_Neighbour = lists:nth(5, Neigh),
   Left_Neighbour = lists:nth(4, Neigh),
+  %Todo, put Occupier instantiation here (care other receives with Occupier as parameter)
 
   receive
+    %receive GrassControllerPid, in order to spawn
+    {gc, {_, Pid}, N} ->
+      Occupier = utils:get_Occupant(Occupant),
+      if
+        %spawn grass on itself
+        Occupier == [] -> P = spawn(grass, grass, [{utils:get_index(Index, N, 2*N, 0), self()},{ready, 0, 0}, Pid]), empty(Index, Neigh, {grass, P});
+        true -> io:format("No longer empty, sorry.~n"), empty(Index, Neigh, Occupant)
+      end;
+
     {move, Direction} when Occupant /= []-> %receive move request from occupant
       Desired_Field = lists:nth(Direction, Neigh),
       if
@@ -131,15 +143,25 @@ empty(Index, Neigh, Occupant)->
       empty(Index, Neigh, Occupant);
 
 
-    {grass, Pid} -> empty(Index, Neigh, {grass, Pid}); %register grass
+    {grass, Pid} ->
+      Occupier = utils:get_Occupant(Occupant),
+      if
+        Occupier /= [] -> io:format("Do NOT spwawn grass here! ~p~n", [Occupier]), empty(Index, Neigh, Occupant);
+        true -> empty(Index, Neigh, {grass, Pid}) %register grass
+      end;
     {rabbit, Pid} ->
       Occupier = utils:get_Occupant(Occupant),
       if
         Occupier == grass -> element(2, Occupant) ! {eaten}, empty(Index, Neigh, {rabbit, Pid});
         Occupier == rabbit -> Pid ! {occupied}, empty(Index, Neigh, Occupant); %when two processes try to move to the same field at the same time -> the second one gets denied
-        true -> Pid ! {ok}, empty(Index, Neigh, {rabbit, Pid}) %register rabbit
+        true -> Pid ! {registered}, empty(Index, Neigh, {rabbit, Pid}) %register rabbit
       end;
-    {unregister} -> empty(Index, Neigh, []);
+    {unregister, Species} ->
+      Occupier = utils:get_Occupant(Occupant),
+      if
+        Occupier == Species ->  empty(Index, Neigh, []); %unregister only if occupant is the same as the one trying to unregister
+        true -> empty(Index, Neigh, Occupant) %field is already occupied by something else (e.g. rabbits eats grass, grass unregisters itself -> would unregister rabbit
+      end;
     {stop} -> io:format("shuting down process ~p~n", [self()]);
     {collect_info, N, NR, Pid, Info} when Index == N*N - (N + 1) ->
       Pid ! {collect_info, Info ++ [{Index, self(), Occupant}]}, %last process (bottom right corner)
@@ -152,7 +174,18 @@ empty(Index, Neigh, Occupant)->
       end,
       empty(Index, Neigh, Occupant);
     _ -> ok, io:format("----------------------~n", []), empty(Index, Neigh, Occupant) %handling unexpected messages
+
+  after
+    %respawn grass
+    800 ->
+      Occupier = utils:get_Occupant(Occupant),
+      if
+        Occupier == [] -> efc ! {spawn, {Index, self()}}, empty(Index, Neigh, []); %request GrassController Pid from efc
+        true -> empty(Index, Neigh, Occupant)
+      end
+
   end
   %Todo: if empty() has no occupant for a certain amount of time -> spawn grass (otherwise grass will disappear)
   %cannot use receive after, because of collect_info
+  %if painter gets ignored, use receive after to spawn grass
 .

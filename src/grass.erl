@@ -10,7 +10,7 @@
 -author("alex").
 
 %% API
--export([grass_initializer/4, start_grass/2, grass_controller/1]).
+-export([grass_initializer/4, start_grass/2, grass_controller/1, grass/3]).
 
 %% initializes all grass processes
 %% args: GridPid: pid of grid-process
@@ -18,7 +18,7 @@
 %%      EmptyFields: list of fields to spawn on
 grass_initializer(GridPid, N, EmptyFields, PainterPid) ->
   % get Index of fields to spawn on %Todo: make sure that not every empty field gets filled with grass -> causes error
-  SpawningPlaces = utils:get_spawning_places(rand:uniform(1), EmptyFields), %get indices of a random number of grid cells to spawn grass on
+  SpawningPlaces = utils:get_spawning_places(rand:uniform(3), EmptyFields), %get indices of a random number of grid cells to spawn grass on
 
   % spawn grasses
   [spawn(?MODULE, start_grass, [Index, self()]) || (Index) <- SpawningPlaces],
