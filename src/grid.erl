@@ -16,19 +16,17 @@
 %%       M: pid of master process
 %%       []: placeholder for a list of all empty field processes (and the spawned controllers)
 emptyFieldController(N, M, [])->
-  %TODO: rename variables to something useful
-  %spawn frame first
-  All = lists:seq(1,N*N), %all empty field processes
-  Right = [Z || Z <- All, Z rem N == 0], %right border processes
-  Left = [Z || Z <- All, Z rem N == 1], %left border processes
-  Top = [Z || Z <- All, Z =< N], %top border processes
-  Bottom = [Z || Z <- All, Z > N*N - N], %bottom border processes
+  All = lists:seq(1,N*N),                % all empty field processes
+  Right = [Z || Z <- All, Z rem N == 0], % right border processes
+  Left = [Z || Z <- All, Z rem N == 1],  % left border processes
+  Top = [Z || Z <- All, Z =< N],         % top border processes
+  Bottom = [Z || Z <- All, Z > N*N - N], % bottom border processes
   Frame = lists:sort(lists:usort(lists:merge([Top, Bottom, Left, Right]))), %merge lists, remove duplicates and sort it
 
   [efc ! {H, border} || H <- Frame], %send a message to itself to register border in list of PID's
   Inner = lists:subtract(All, Frame), %remaining processes (= all grid processes which are not border)
-%%  utils:while(B), %spawn an empty process for each real process
-  [register(list_to_atom(integer_to_list(utils:get_index(H, N, 2*N, 0))),spawn(?MODULE, empty, [H, [], []])) || H <- Inner],
+  % keeping it for show-off: [register(list_to_atom(integer_to_list(utils:get_index(H, N, 2*N, 0))),spawn(?MODULE, empty, [H, [], []])) || H <- Inner],
+  [spawn(?MODULE, empty, [H, [], []]) || H <- Inner],
 
   %TODO: maybe change the above send and below receive, since its in the same function (no send/receive should be necessary)
   Pid_list = [receive {I, Pid} -> (lists:sublist(All,I-1) ++ [{I, Pid}] ++ lists:nthtail(I,All)) end || I <- lists:seq(1, N*N)], %receive a list of tuples {Index, PID} for each process on the grid (incl. border)
@@ -89,25 +87,17 @@ emptyFieldController(N, M, All, PainterPid)->
       M! ok %sends ok to Master to let him know, that he can terminate
   end.
 
-
 %=======================================================================================================================
 %=======================================================================================================================
 
-%% the empty field processes
+%% the empty field processes, part of the grid, handles action and communication on this grid-cell
 %% args: Index: Index of the field in the grid (or in the list of processes in the empty controller)
 %%       Neigh: list of his surrounding neighbours (list of pids/border only, no tuple)
 %%       Occupant: the process currently on this field (can be an empty list if nothing is on it) (tuple with species (atom) an pid)
-empty(Index, [], [])->
-  efc ! {Index, self()}, %send Pid of empty process to controller
-  receive
-    {init, Arr} -> io:format("Self: ~p, Neighbours: ~p~n", [self(), Arr]), empty(Index, Arr, []) %receive (ordered!) List of Neighbours
-  end;
-%TODO: the code below can by used in a secondary empty function which is used while the simulation runs and not for initialising
-%%  receive
-%%    {update, NeighbourIndex, {NeighbourState}} ->
-%%      %% update own state (e.g. what process(animal) is present on this field -> not necessary here, since it will be empty at first anyways
-%%      io:format("updating own state and informing neighbours~n")
-%%  end.
+empty(Index, [], []) ->
+  efc ! {Index, self()}, %send Pid of empty process to EmptyFieldController
+  receive {init, Neighbours} -> empty(Index, Neighbours, []) end;
+
 empty(Index, Neigh, Occupant) ->
   % ----------- static variable declarations ---------
   Right_Neighbour = lists:nth(5, Neigh),
@@ -121,8 +111,8 @@ empty(Index, Neigh, Occupant) ->
     {gc, {_, Pid}, N} when OccupierSpecies == [] -> P = spawn(grass, grass, [{utils:get_index(Index, N, 2*N, 0), self()},{ready, 0, 0}, Pid]), empty(Index, Neigh, {grass, P});
     {gc, {_, Pid}, N} -> empty(Index, Neigh, Occupant);
 
-    % ===== movement process: ask to move, neighbour is asked, answer is received and sent to questioner ----
-    % movement request
+  % ===== movement process: ask to move, neighbour is asked, answer is received and sent to questioner ----
+  % movement request
     {move, Direction} when Occupant /= []-> %receive move request from occupant
       Desired_Field = lists:nth(Direction, Neigh),
       if
@@ -131,74 +121,52 @@ empty(Index, Neigh, Occupant) ->
       end,
       empty(Index, Neigh, Occupant);
 
-    % ------- serve request from other empty field on what is on this field  ---------
+  % ------- serve request from other empty field on what is on this field  ---------
     {what, Pid} -> Pid ! {answer, OccupierSpecies, self()}, empty(Index, Neigh, Occupant);
 
 
-    % ------- receive occupant of neighbour field -------------------------
+  % ------- receive occupant of neighbour field -------------------------
     {answer, Occupier, New_Field} when Occupant /= [] -> OccupierPid ! {Occupier, {Index, New_Field}}, empty(Index, Neigh, Occupant);
 
 
-    % ------- grass trying to register on this field ---------------
+  % ------- grass trying to register on this field ---------------
     {grass, Pid} when OccupierSpecies /= [] -> empty(Index, Neigh, Occupant);
     {grass, Pid} -> empty(Index, Neigh, {grass, Pid});
 
 
-    % ------- rabbit trying to register on this field ---------------
+  % ------- rabbit trying to register on this field ---------------
     {rabbit, Pid} when OccupierSpecies == grass -> element(2, Occupant) ! {eaten}, empty(Index, Neigh, {rabbit, Pid});
     {rabbit, Pid} when OccupierSpecies == rabbit -> Pid ! {occupied}, empty(Index, Neigh, Occupant); %when two processes try to move to the same field at the same time -> the second one gets denied
     {rabbit, Pid} -> Pid ! {registered}, empty(Index, Neigh, {rabbit, Pid}); %register rabbit
 
 
-    % ------- species unregistering ---------------------------------
+  % ------- species unregistering ---------------------------------
     {unregister, Species} when OccupierSpecies == Species -> empty(Index, Neigh, []); %unregister only if occupant is the same as the one trying to unregister
     {unregister, Species} -> empty(Index, Neigh, Occupant); %field is already occupied by something else (e.g. rabbits eats grass, grass unregisters itself -> would unregister rabbit
 
 
-    % ---------------- information collection -------------------------
-    {collect_info, N, NR, Pid, Info} when Index == N*N - (N + 1) -> Pid ! {collect_info, Info ++ [{Index, self(), Occupant}]}, %last process (bottom right corner)
-      empty(Index, Neigh, Occupant);
-    {collect_info, N, NR, Pid, Info}  ->
-      if
-        Left_Neighbour == border -> Right_Neighbour ! {collect_info, N, lists:nth(7, Neigh), Pid, Info ++ [{Index, self(), Occupant}]}; %first process of a row
-        Right_Neighbour == border -> NR ! {collect_info, N, NR, Pid, Info ++ [{Index, self(), Occupant}]}; %last process of a row
-        true -> Right_Neighbour ! {collect_info, N, NR, Pid, Info ++ [{Index, self(), Occupant}]}
-      end,
-      empty(Index, Neigh, Occupant);
+  % ---------------- information collection -------------------------
+    {collect_info, N, NR, Pid, Info} when Index == N*N - (N + 1) -> Pid ! {collect_info, Info ++ [{Index, self(), Occupant}]}; %last process (bottom right corner)
+    {collect_info, N, NR, Pid, Info} when Left_Neighbour == border -> Right_Neighbour ! {collect_info, N, lists:nth(7, Neigh), Pid, Info ++ [{Index, self(), Occupant}]}; %first process of a row
+    {collect_info, N, NR, Pid, Info} when Right_Neighbour == border -> NR ! {collect_info, N, NR, Pid, Info ++ [{Index, self(), Occupant}]}; %last process of a row
+    {collect_info, N, NR, Pid, Info} -> Right_Neighbour ! {collect_info, N, NR, Pid, Info ++ [{Index, self(), Occupant}]};
 
-    % -------- stop this process -------------------------------------
-    {stop} -> io:format("shuting down process ~p~n", [self()]);
-    % --------- handle unexpected messages ---------------------------
+  % -------- stop this process and its occupier -------------------------------------
+    {stop} -> OccupierPid ! {stop}, io:format("shuting down process ~p~n", [self()]), halt();
+
+  % --------- handle unexpected messages ---------------------------
     _ -> ok, io:format("---------This message should not be received. ----------~n", []), empty(Index, Neigh, Occupant) %handling unexpected messages
 
+  % ================== main message loop end ====================================
+
+  % ------ if nothing happend for some time, spawn grass ------------------------
   after
-  %respawn grass
-    800 ->
-      Occupier = utils:get_Occupant(Occupant),
-      if
-        Occupier == [] -> efc ! {spawn, {Index, self()}}, empty(Index, Neigh, []); %request GrassController Pid from efc
+    800  ->
+      if % nothing happened, request GrassControllerPid to spawn grass
+        OccupierSpecies == [] -> efc ! {spawn, {Index, self()}}, empty(Index, Neigh, []);
         true -> empty(Index, Neigh, Occupant)
       end
+  end,
 
-  end
-%Todo: if empty() has no occupant for a certain amount of time -> spawn grass (otherwise grass will disappear)
-%cannot use receive after, because of collect_info
-%if painter gets ignored, use receive after to spawn grass
-.
-
-
-% forward_info_collection(N, NR, Pid, Info, Index, Right_Neighbour, LeftNeighbour) ->
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+  % restart process
+  empty(Index, Neigh, Occupant).
