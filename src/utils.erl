@@ -10,7 +10,7 @@
 -author("alex").
 
 %% API
--export([remove_indices/1, get_processes/1, init_neighbours/5, get_index/4, get_Occupant/1, get_spawning_places/2]).
+-export([remove_indices/1, get_processes/1, init_neighbours/5, get_index/4, get_Occupant/1, get_spawning_places/2, get_occupier_pid/1]).
 
 %% removes all non tuple elements (indices) from a list
 remove_indices([])-> [];
@@ -47,6 +47,8 @@ get_index(I, N, _Mult, Acc) -> I - (N + 1 + Acc).
 get_Occupant([]) -> [];
 get_Occupant(Occupant) -> element(1, Occupant).
 
+get_occupier_pid([]) -> [];
+get_occupier_pid(Occupant) -> element(2, Occupant).
 
 %% TODO change name to something meaningful.. :') OR: remove, since its unused.
 while([])->

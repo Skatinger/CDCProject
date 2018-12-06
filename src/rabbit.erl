@@ -106,6 +106,7 @@ rabbit(MyIndex, {State, Size, Age}) ->
   element(2, MyIndex) ! {move, Rand}, %Todo: implement behaviour
   %receive what is currently on the field the rabbit wants to move to
   receive %Pid is the pid of the desired field, so that the rabbit can register itself on it
+    {stop} -> ok;
     {fox} -> io:format("Don't move! ~n"), rabbit(MyIndex, {State, Size - 1, Age + 1}); %Pid not necessary for fox, since rabbit wont move
     {rabbit, {Index, Pid}} -> io:format("???? ~p~n", [self()]), rabbit(MyIndex, {State, Size - 1, Age + 1}); %mate?
     {grass, {Index, Pid}} -> io:format("eating ~p~n", [self()]), Pid ! {rabbit, self()}, element(2, MyIndex) ! {unregister, rabbit}, rabbit({Index, Pid}, {State, Size + 5, Age + 1});
