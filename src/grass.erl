@@ -18,7 +18,7 @@
 %%      EmptyFields: list of fields to spawn on
 grass_initializer(GridPid, N, EmptyFields, PainterPid) ->
   % get Index of fields to spawn on %Todo: make sure that not every empty field gets filled with grass -> causes error
-  SpawningPlaces = utils:get_spawning_places(rand:uniform(3), EmptyFields), %get indices of a random number of grid cells to spawn grass on
+  SpawningPlaces = utils:get_spawning_places(rand:uniform(N), EmptyFields), %get indices of a random number of grid cells to spawn grass on
 
   % spawn grasses
   [spawn(?MODULE, start_grass, [Index, self()]) || (Index) <- SpawningPlaces],
@@ -60,7 +60,7 @@ grass(MyIndex, {State, Size, Age}, GrassControllerPid) ->
   %% pass_field_info({self(), State, Size, Age}),
   %% check if got eaten
   receive
-    {eaten} -> common_behavior:die(MyIndex, grass, {State, Size, Age}, GrassControllerPid)
+    {eaten} -> common_behavior:die(MyIndex, grass, GrassControllerPid)
   after 5 -> ok
   end,
 

@@ -38,7 +38,7 @@ emptyFieldController(N, M, [])->
   Empty_Processes = [{utils:get_index(Index, N, 2*N, 0), Pid} || {Index, Pid} <- Empty_Processes1], %list of real processes (properly indexed)
   io:format("\e[0;31mArray: ~p~n \e[0;37m", [Empty_Processes]),
 
-  % receive pid of painter to pass to controllers
+  % receive pid of painter to pass to controllers %TODO make this a method and redundant, if pid is not received app crashes
   PainterPid = receive {painter_pid, PainterPid} -> PainterPid end,
 
   List_of_Neigh = lists:reverse(utils:init_neighbours(N, Empty_Processes1, (N-2)*(N-2), List_of_Pids, [])), %initialise a list of all possible neighbours for each process
@@ -50,8 +50,8 @@ emptyFieldController(N, M, [])->
   % list of all processes spawned by this one, which should be terminated upon receiving stop
   % Children = List_of_Pids, %  ++ [{N*N + 1, lists:nth(1, ControllerPids)}], %adding first controller Pid (in this case the grass controller)
 
-  % spawn grass controller first
-  ControllerPid = spawn(grass, grass_initializer, [self(), (N-2)*(N-2), Empty_Processes, PainterPid]),
+  % spawn grass controller first TODO spawning 3 grass ATM, should change to param from master
+  ControllerPid = spawn(grass, grass_initializer, [self(), 3, Empty_Processes, PainterPid]),
   % spawn rest of controllers
   initialize_controllers(N, M, List_of_Pids, PainterPid).
 
@@ -59,8 +59,8 @@ emptyFieldController(N, M, [])->
 initialize_controllers(N, M, List_of_Pids, PainterPid) ->
   % receive still empty fields and spawn rabbit controller
   receive
-    {grass, StillEmptyFields} ->
-      RabbitControllerPid = spawn(rabbit, rabbit_initializer, [self(), (N-2)*(N-2), StillEmptyFields, PainterPid]),
+    {grass, StillEmptyFields} ->                                   % TODO spawning 6 rabbits ATM, change 6 to param from master
+      RabbitControllerPid = spawn(rabbit, rabbit_initializer, [self(), 6, StillEmptyFields, PainterPid]),
       Children = List_of_Pids ++ [{N*N + 2, RabbitControllerPid}], %adding second controller Pid (in this case the rabbit controller)
       initialize_controllers(N, M, Children, PainterPid);
 
@@ -154,7 +154,7 @@ empty(Index, Neigh, Occupant) ->
     {stop} -> OccupierPid ! {stop}, io:format("shuting down process ~p~n", [self()]), halt();
 
   % --------- handle unexpected messages ---------------------------
-    _ -> ok, io:format("---------This message should not be received. ----------~n", []), empty(Index, Neigh, Occupant) %handling unexpected messages
+    M -> ok, io:format("---------This message should not be received. ------~p----~n", [M]), empty(Index, Neigh, Occupant) %handling unexpected messages
 
   % ================== main message loop end ====================================
 
