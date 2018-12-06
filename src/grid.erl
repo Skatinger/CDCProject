@@ -116,7 +116,7 @@ empty(Index, Neigh, Occupant) ->
       Desired_Field = lists:nth(Direction, Neigh),
       if
         Desired_Field == border -> erlang:element(2, Occupant) ! {border};
-        true -> Desired_Field ! {what, self()} %asking desired field what is currently residing on it"
+        true -> Desired_Field ! {what, self()} %asking desired field what is currently residing on it
       end,
       empty(Index, Neigh, Occupant);
 
@@ -126,6 +126,27 @@ empty(Index, Neigh, Occupant) ->
 
   % ------- receive occupant of neighbour field -------------------------
     {answer, Occupier, New_Field} when Occupant /= [] -> OccupierPid ! {Occupier, {Index, New_Field}}, empty(Index, Neigh, Occupant);
+
+
+  % ------- receive mating request -------------------------
+    {mating} ->
+      %check for an adjacent empty field to spawn new rabbit on
+      Real_Surrounding_Processes = utils:get_real_neighbours(Neigh),
+      Number_of_Real_Surrounding_Processes = length(Real_Surrounding_Processes),
+      [P ! {u_empty, self()} || P <- Real_Surrounding_Processes],
+      io:format("Surrounding real processes: ~p, length: ~p~n", [Real_Surrounding_Processes, Number_of_Real_Surrounding_Processes]),
+      List_of_surrounding_occupants = lists:flatten([receive {Occ, Pid} -> [{Occ, Pid}] end || I <- lists:seq(1, Number_of_Real_Surrounding_Processes)]),
+      io:format("Surrounding Occupants: ~p~n", [List_of_surrounding_occupants]),
+      %Todo: get an empty field and spawn a rabbit on it !!! careful when no empty field is available
+      Pid = utils:get_empty_field(List_of_surrounding_occupants),
+      empty(Index, Neigh, Occupant);
+
+  % ------- receive occupant request -------------------------
+    {u_empty, Asker} ->
+      %send occupant and own pid back (pid needed for potential spawning of a new rabbit)
+      io:format("sending occupant back to asker: ~p~n", [self()]),
+      Asker ! {utils:get_Occupant(Occupant), self()},
+      empty(Index, Neigh, Occupant);
 
 
   % ------- grass trying to register on this field ---------------
@@ -158,7 +179,7 @@ empty(Index, Neigh, Occupant) ->
 
   % ================== main message loop end ====================================
 
-  % ------ if nothing happend for some time, spawn grass ------------------------
+  % ------ if nothing happened for some time, spawn grass ------------------------
   after
     800  ->
       if % nothing happened, request GrassControllerPid to spawn grass

@@ -103,12 +103,19 @@ rabbit(MyIndex, {State, Size, Age}) ->
   timer:sleep(500),
   Rand = rand:uniform(8),
   %send underlying empty field that the rabbit wants to move
-  element(2, MyIndex) ! {move, Rand}, %Todo: implement behaviour
+  element(2, MyIndex) ! {move, Rand}, %Todo: complete behaviour (mating)
   %receive what is currently on the field the rabbit wants to move to
   receive %Pid is the pid of the desired field, so that the rabbit can register itself on it
-    {stop} -> ok;
+    {stop} -> io:format("\e[0;35mTerminating rabbit ~p~n\e[0;37m", [self()]), ok;
     {fox} -> io:format("Don't move! ~n"), rabbit(MyIndex, {State, Size - 1, Age + 1}); %Pid not necessary for fox, since rabbit wont move
-    {rabbit, {Index, Pid}} -> io:format("???? ~p~n", [self()]), rabbit(MyIndex, {State, Size - 1, Age + 1}); %mate?
+    %if adjacent field is occupied by another rabbit, try to mate (no movement necessary), spawn child on a surrounding empty field (if available)
+    {rabbit, {Index, Pid}} ->
+      io:format("\e[0;35mTrying to mate ~p~n\e[0;37m", [self()]),
+      %ask empty field if one of the surrounding fields is empty (surrounding field of himself and maybe also of other rabbit)
+      Pid ! {mating},
+      %fast forward age or size, since mating is exhausting :)
+      rabbit(MyIndex, {State, Size - 1, Age + 1});
+
     {grass, {Index, Pid}} -> io:format("eating ~p~n", [self()]), Pid ! {rabbit, self()}, element(2, MyIndex) ! {unregister, rabbit}, rabbit({Index, Pid}, {State, Size + 5, Age + 1});
     {[], {Index, Pid}} ->
       io:format("\e[0;31mmove ~p~n\e[0;37m", [self()]), %desired field is an empty field

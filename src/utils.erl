@@ -10,10 +10,10 @@
 -author("alex").
 
 %% API
--export([remove_indices/1, get_processes/1, init_neighbours/5, get_index/4, get_Occupant/1, get_spawning_places/2, get_occupier_pid/1]).
+-export([remove_indices/1, get_processes/1, init_neighbours/5, get_index/4, get_Occupant/1, get_spawning_places/2, get_occupier_pid/1, get_real_neighbours/1, get_empty_field/1]).
 
 %% removes all non tuple elements (indices) from a list
-remove_indices([])-> [];
+remove_indices([]) -> [];
 remove_indices([H | T]) when tuple_size(H) == 2 -> [H] ++ remove_indices(T);
 remove_indices([H | T]) -> remove_indices(T).
 
@@ -22,6 +22,26 @@ get_processes([]) -> [];
 get_processes([H | T]) when element(2, H) == border ->
   get_processes(T);
 get_processes([H | T]) -> [H] ++ get_processes(T).
+
+%% similar to get_processes, but only for single variable list (no tuples)
+get_real_neighbours([]) -> [];
+get_real_neighbours([H | T]) when H == border -> get_real_neighbours(T);
+get_real_neighbours([H | T]) -> [H] ++ get_real_neighbours(T).
+
+%% returns a random pid of an empty field from the given list (list contains tuples with {occupant, Pid})
+get_empty_field([]) -> [];
+get_empty_field(List) ->
+  List_of_empty_fields = remove_occupied_field(List),
+  Length = length(List_of_empty_fields),
+  if
+    Length == 0 -> io:format("no empty field available~n"); %Todo: handle this case, because empty() expects a pid
+    true -> lists:nth(rand:uniform(Length), List_of_empty_fields)
+  end.
+
+%% removes tuples from the list, which contain a species
+remove_occupied_field([]) -> [];
+remove_occupied_field([{H, _} | T]) when H /= [] -> remove_occupied_field(T);
+remove_occupied_field([H | T]) -> [H] ++ remove_occupied_field(T).
 
 %% initialise a list of list containing the surrounding processes of the inner grid (for every real process)
 %% args: N: square root of the numbers of grid cells
@@ -33,11 +53,11 @@ init_neighbours(_N, [], 0, _R, Acc) ->
   %io:format("List of Neigbhours: ~p~n", [Acc]),
   Acc;
 init_neighbours(N, [{Ind, _} | T], C, R, Acc) ->
-  Top = [B2 || {B1, B2} <- R, B1 >= Ind - (N+1), B1 =< Ind - (N-1)],
+  Top = [B2 || {B1, B2} <- R, B1 >= Ind - (N + 1), B1 =< Ind - (N - 1)],
   Mid = [B2 || {B1, B2} <- R, B1 >= Ind - 1, B1 =< Ind + 1, B1 /= Ind],
-  Bot = [B2 || {B1, B2} <- R, B1 >= Ind + (N-1), B1 =< Ind + (N+1)],
+  Bot = [B2 || {B1, B2} <- R, B1 >= Ind + (N - 1), B1 =< Ind + (N + 1)],
   Neigh = Top ++ Mid ++ Bot,
-  init_neighbours(N, T, C-1, R, [Neigh] ++ Acc).
+  init_neighbours(N, T, C - 1, R, [Neigh] ++ Acc).
 
 %Transforms indexes of real processes to index from 1 to max of real processes (E.g. 5x5 grid: [7,8,9,12,13,14,17,18,19] to [1,...,9]
 get_index(I, N, Mult, Acc) when I > Mult -> get_index(I, N, Mult + N, Acc + 2);
@@ -51,9 +71,9 @@ get_occupier_pid([]) -> [];
 get_occupier_pid(Occupant) -> element(2, Occupant).
 
 %% TODO change name to something meaningful.. :') OR: remove, since its unused.
-while([])->
+while([]) ->
   io:format("while ended~n"); %TODO if the while is used, changed this to something else (not an io)
-while([H|T]) ->
+while([H | T]) ->
   spawn(?MODULE, empty, [H, []]),
   while(T).
 
@@ -62,7 +82,6 @@ while([H|T]) ->
 %% returns the picked fields
 get_spawning_places(N, Fields) ->
   pick_n_many(N, Fields, []).
-
 
 
 %%%--------------------------- private ------------------------------
@@ -76,5 +95,5 @@ pick_n_many(0, _, Result) ->
 pick_n_many(N, List, Result) ->
   Res = lists:nth(rand:uniform(length(List)), List),
   NewList = lists:delete(Res, List),
-  pick_n_many(N-1, NewList, [Res|Result]).
+  pick_n_many(N - 1, NewList, [Res | Result]).
 
