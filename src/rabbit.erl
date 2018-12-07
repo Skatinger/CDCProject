@@ -118,7 +118,7 @@ rabbit(MyIndex, {State, Size, Age}, RabbitControllerPid) ->
       %fast forward age or size, since mating is exhausting :)
       rabbit(MyIndex, {State, Size - 1, Age + 1}, RabbitControllerPid);
 
-    {grass, {Index, Pid}} -> io:format("eating ~p~n", [self()]), Pid ! {rabbit, self()}, element(2, MyIndex) ! {unregister, rabbit}, rabbit({Index, Pid}, {State, Size + 5, Age + 1});
+    {grass, {Index, Pid}} -> io:format("eating ~p~n", [self()]), Pid ! {rabbit, self()}, element(2, MyIndex) ! {unregister, rabbit}, rabbit({Index, Pid}, {State, Size + 5, Age + 1}, RabbitControllerPid);
     {[], {Index, Pid}} ->
       io:format("\e[0;31mmove ~p~n\e[0;37m", [self()]), %desired field is an empty field
       Pid ! {rabbit, self()}, %register at new field
