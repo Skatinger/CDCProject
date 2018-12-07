@@ -10,7 +10,7 @@
 -author("alex").
 
 %% API
--export([remove_indices/1, get_processes/1, init_neighbours/5, get_index/4, get_Occupant/1, get_spawning_places/2, get_occupier_pid/1, get_real_neighbours/1, get_empty_field/1]).
+-export([remove_indices/1, get_processes/1, init_neighbours/5, get_index/4, get_Occupant/1, get_spawning_places/2, get_occupier_pid/1, get_real_neighbours/1, get_empty_field/1, remove_occupied_field/1]).
 
 %% removes all non tuple elements (indices) from a list
 remove_indices([]) -> [];

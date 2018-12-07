@@ -18,7 +18,8 @@
 %%      EmptyFields: list of fields to spawn on
 grass_initializer(GridPid, N, EmptyFields, PainterPid) ->
   % get Index of fields to spawn on %Todo: make sure that not every empty field gets filled with grass -> causes error
-  SpawningPlaces = utils:get_spawning_places(rand:uniform(N), EmptyFields), %get indices of a random number of grid cells to spawn grass on
+  Random = rand:uniform(N),
+  SpawningPlaces = utils:get_spawning_places(Random, EmptyFields), %get indices of a random number of grid cells to spawn grass on
 
   % spawn grasses
   [spawn(?MODULE, start_grass, [Index, self()]) || (Index) <- SpawningPlaces],
@@ -31,7 +32,7 @@ grass_initializer(GridPid, N, EmptyFields, PainterPid) ->
   % register this controller at the painter
   messaging:register_self_to_painter(self(), PainterPid),
   % start controller
-  grass_controller(N).
+  grass_controller(Random).
 
 
 
