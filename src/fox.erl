@@ -34,9 +34,9 @@ fox(MyIndex, {State, Size, Age}) ->
   %% decide what behavior to do
   Rand = rand:uniform(10),
   %% too old, die of age
-  if Age > 50 -> die(MyIndex, {State, Size, Age});
+  if Age > 50 -> common_behavior:die(MyIndex, {State, Size, Age});
   %% 0.2 chance to sleep
-    Rand > 7 -> sleep();
+    Rand > 7 -> common_behavior:sleep();
   %% do other behavior
     true -> ok
   end,
