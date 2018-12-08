@@ -16,14 +16,15 @@
 
 %% puts species counts and calls the grid-painter
 painter(Grid, ControllerPids) -> %Grid is the same as N in grid.erl
-%%  [list_to_atom(integer_to_list(X)) ! {hello} || X <- lists:seq(1, 9)], %only used for testing (send message to registered empty fields)
   SpeciesCounts = get_species_counts(ControllerPids),
-  GridState = get_grid_state(),
+  EfcPid = lists:nth(length(ControllerPids), ControllerPids),
+  GridState = get_grid_state(EfcPid),
   io:format("======= INFO ========~n", []),
   io:format("== Current Species Counts: ==~n ] ~p~n", [SpeciesCounts]),
   paint_grid(GridState, Grid),
+  write_state_to_file(SpeciesCounts),
   receive
-    {stop} -> io:format("terminating painter~n");
+    {stop} -> write_results_to_file(SpeciesCounts), io:format("terminating painter~n");
     {NewControllerPid} -> painter(Grid, [NewControllerPid|ControllerPids])
   after
     1000 ->  painter(Grid, ControllerPids)
@@ -52,8 +53,16 @@ get_species_counts(ControllerPids) ->
   SpeciesCounts.
 
 %% sends message to first process and waits for the list to pass through grid and come back (replace first process with controller)
-get_grid_state() ->
-  efc ! {collect_info, self()},
+get_grid_state(EfcPid) ->
+  EfcPid ! {collect_info, self()},
   io:format("requesting grid state (visual.erl)~n"),
   GridState = receive {collect_info, Result} -> Result end,
   GridState.
+
+%% writes current species counts to a file for evaluation
+write_state_to_file(SpeciesCounts) ->
+  file:write_file("../simulation_results.txt", io_lib:fwrite("~p~n", [SpeciesCounts]), [append]).
+
+%% writes the final state to a file
+write_results_to_file(SpeciesCounts) ->
+  file:write_file("../simulation_results.txt", io_lib:fwrite("Final species counts: ~p~n", [SpeciesCounts]), [append]).
