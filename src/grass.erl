@@ -35,7 +35,6 @@ grass_initializer(GridPid, N, EmptyFields, PainterPid) ->
   grass_controller(Random).
 
 
-
 %% keeps track of grass count
 %% args:  Master: Pid of Masterprocess
 %%             N: current number of grasses
@@ -50,32 +49,23 @@ grass_controller(N)->
     {stop} -> ok, io:format("grass_controller ending~n",[])
   end.
 
-
+%% used to start a grass process. registers grass process with its empty field
+%% args: MyIndex: Index of the grass species on the grid
+%%     GrassControllerPid: Pid of the grasscontroller used for dying (change grass-count)
 start_grass(MyIndex, GrassControllerPid) ->
   Empty_Pid = element(2, MyIndex),
   Empty_Pid ! {grass, self()},
   grass(MyIndex, {ready, 0, 0}, GrassControllerPid).
 
-%% own grid number, tuple of current state (eating, mating...), size, Age
+%% grass behavior method
+%% args: MyIndex: own grid number
+%%       Tupe: current state (eating, mating...), size, Age of this grass
+%%       GrassControllerPid: pid of grasscontroller, used for count of grass
 grass(MyIndex, {State, Size, Age}, GrassControllerPid) ->
-  %% pass_field_info({self(), State, Size, Age}),
   %% check if got eaten
   receive
     {eaten} -> common_behavior:die(MyIndex, grass, GrassControllerPid)
-  after 5 -> ok
+  after 50 -> ok
   end,
-
-  %% grows in patches TODO spawn empty neighbour field
-  % Rand = rand:uniform(8),
-  % EmptyNeighbours = xy..
-
-  %if
-  %  Rand < 2 ->
-      %% spawn grass on empty neighbour field
-      % spawn(?MODULE, grass, [Rand, ]);
-      %% io:format("should spawn grass now~n", []);
-  %  true -> ok
-  %end,
-
   grass(MyIndex, {State, Size + 1, Age + 1}, GrassControllerPid).
 

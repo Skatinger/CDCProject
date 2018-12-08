@@ -1,6 +1,5 @@
 %%%-------------------------------------------------------------------
 %%% @author alex
-%%% @copyright (C) 2018, <COMPANY>
 %%% @doc
 %%%
 %%% @end
@@ -14,12 +13,8 @@
 
 %% ================== behavior methods ===========================
 
-% this doesnt work yet TODO implement it for grass
 die(MyIndex, Species, ControllerPid) ->
-  % maybe some info about being dead, inform current place
   io:format("\033[92mbye bye from ~p ON ~p\e[0;37m~n", [Species, MyIndex]),
-  % inform empty field of death
-%%  element(2, MyIndex) ! {unregister}, %Don't use this (at least not for grass), because this would unregister the current process (which at this point is already a rabbit)
   % inform controller of death
   ControllerPid ! {died},
   exit(0).

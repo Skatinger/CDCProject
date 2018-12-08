@@ -10,18 +10,17 @@
 -author("alex").
 
 %% API
--export([fox_initializer/2, fox/2, fox_controller/2]).
--import(common_behavior, [die/2, sleep/0]).
--import(messaging, [pass_field_info/1]).
+-export([fox_initializer/1, fox/2, fox_controller/1]).
 
-fox_initializer(N, Fields) ->
+fox_initializer(N) ->
   %% spawn N of foxes in the fields Fields
   % [spawn(?MODULE, fox, [Index, {ready, 0, 0}]) || (Index) <- SpawningPlaces]
 
 
-  io:format("species-controller~n",[]).
+  io:format("fox controller~n",[]),
+  fox_controller(N).
 
-fox_controller(N, Fields)->
+fox_controller(N)->
 
   % initialize rabbits with initmethod
   %% spawn N of rabbits in the fields Fields

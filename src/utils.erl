@@ -6,11 +6,12 @@
 %%% Created : 24. Nov 2018 15:27
 %%%-------------------------------------------------------------------
 -module(utils).
--author("alex").
+-author("alex, jonas").
 
 %% API
 -export([remove_indices/1, get_processes/1, init_neighbours/5, get_index/4,
-  get_occupying_species/1, get_spawning_places/2, get_occupier_pid/1, get_real_neighbours/1, get_empty_field/1, remove_occupied_field/1]).
+  get_occupying_species/1, get_spawning_places/2, get_occupier_pid/1, get_real_neighbours/1,
+  get_empty_field/1, remove_occupied_field/1]).
 
 %% removes all non tuple elements (indices) from a list
 remove_indices([]) -> [];
@@ -52,7 +53,7 @@ remove_occupied_field([H | T]) -> [H] ++ remove_occupied_field(T).
 %%       R: all grid processes (empty fields and border)
 %%       Acc: Accumulator (will be the resulting list of neighbours)
 init_neighbours(_N, [], 0, _R, Acc) ->
-  %io:format("List of Neigbhours: ~p~n", [Acc]),
+  %io:format("List of Neighbours: ~p~n", [Acc]),
   Acc;
 init_neighbours(N, [{Ind, _} | T], C, R, Acc) ->
   Top = [B2 || {B1, B2} <- R, B1 >= Ind - (N + 1), B1 =< Ind - (N - 1)],

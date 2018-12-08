@@ -1,8 +1,7 @@
 %%%-------------------------------------------------------------------
-%%% @author alex
-%%% @copyright (C) 2018, <COMPANY>
+%%% @author alex, jonas
 %%% @doc
-%%%
+%%% This module is used for all data representation from the simulation. It also collects all info.
 %%% @end
 %%% Created : 25. Nov 2018 10:27
 %%%-------------------------------------------------------------------
@@ -28,8 +27,7 @@ painter(Grid, ControllerPids) -> %Grid is the same as N in grid.erl
     {NewControllerPid} -> painter(Grid, [NewControllerPid|ControllerPids])
   after
     1000 ->  painter(Grid, ControllerPids)
-  end
-.
+  end.
 
 %% ------------------------ private ------------------------------------
 

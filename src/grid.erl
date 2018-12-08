@@ -1,15 +1,13 @@
 %%%-------------------------------------------------------------------
 %%% @author alex, jonas
 %%% @doc
-%%% This is the grid module. It does stuff.
+%%% This module organizes the simulation grid and ensures communication
+%%% among species on top of the grid.
 %%% @end
 %%% Created : 25. Nov 2018 10:24
 %%%-------------------------------------------------------------------
 -module(grid).
 -author("alex, jonas").
-
-%% --------- cool and fancy code (keeping it for show-off):
-% [register(list_to_atom(integer_to_list(utils:get_index(H, N, 2*N, 0))),spawn(?MODULE, empty, [H, [], []])) || H <- Inner],
 
 %% API
 -export([empty/4, emptyFieldController/3]).
@@ -43,9 +41,6 @@ emptyFieldController(N, M, [])->
 
   List_of_Neigh = lists:reverse(utils:init_neighbours(N, Empty_Processes1, (N-2)*(N-2), List_of_Pids, [])), %initialise a list of all possible neighbours for each process
   [Empty_Field ! {init, lists:nth(utils:get_index(Ind, N, 2*N, 0), List_of_Neigh)} || {Ind, Empty_Field} <-Empty_Processes1], %send each process its list of neighbours
-
-  timer:sleep(200), %don't want to return to master before all empty processes have printed their neighbours list,
-  %can be removed once the emptyController below is properly implemented
 
   % list of all processes spawned by this one, which should be terminated upon receiving stop
   % Children = List_of_Pids, %  ++ [{N*N + 1, lists:nth(1, ControllerPids)}], %adding first controller Pid (in this case the grass controller)
@@ -168,6 +163,11 @@ empty(Index, Neigh, Occupant, EmptyFieldControllerPid) ->
     {rabbit, Pid} when OccupierSpecies == grass -> element(2, Occupant) ! {eaten}, empty(Index, Neigh, {rabbit, Pid}, EmptyFieldControllerPid);
     {rabbit, Pid} when OccupierSpecies == rabbit -> Pid ! {occupied}, empty(Index, Neigh, Occupant, EmptyFieldControllerPid); %when two processes try to move to the same field at the same time -> the second one gets denied
     {rabbit, Pid} -> Pid ! {registered}, io:format("registering rabbit: ~p on ~p~n", [Pid, self()]), empty(Index, Neigh, {rabbit, Pid}, EmptyFieldControllerPid); %register rabbit
+
+
+  % ------ fox trying to register on this field ------------------
+  % TODO maybe or also not :')
+
 
 
   % ------- species unregistering ---------------------------------
