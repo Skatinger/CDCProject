@@ -42,8 +42,8 @@
 
 start(N, G, R, F) ->
   io:format("me: ~p~n", [self()]),
-  EfcPid = spawn(grid, emptyFieldController, [N, self(), []]), %create frame around grid with field containing an atom (saying end)
-  PainterPid = spawn(visual, painter, [N, [EfcPid]]), %% create painter which paints field every timestep
+  EfcPid = spawn(node(), grid, emptyFieldController, [N, self(), []]), %create frame around grid with field containing an atom (saying end)
+  PainterPid = spawn(node(), visual, painter, [N, [EfcPid]]), %% create painter which paints field every timestep
 
   % inform grid about painter pid
   EfcPid ! {painter_pid, PainterPid},

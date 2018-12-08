@@ -40,8 +40,8 @@ paint_grid([{Index, State, Occupant}|T], N) ->
   Converted_Index = utils:get_index(Index, N, 2*N, 0),
   if
   % linebreak if end of line
-    Converted_Index rem  (N-2) == 0 -> io:format("|- ~p, ~p -|~n", [State, utils:get_Occupant(Occupant)]);
-    true -> io:format("| ~p, ~p |", [State, utils:get_Occupant(Occupant)])
+    Converted_Index rem  (N-2) == 0 -> io:format("|- ~p, ~p -|~n", [State, utils:get_occupying_species(Occupant)]);
+    true -> io:format("| ~p, ~p |", [State, utils:get_occupying_species(Occupant)])
   end,
   paint_grid(T, N).
 

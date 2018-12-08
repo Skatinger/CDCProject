@@ -83,27 +83,6 @@ rabbit(MyIndex, {_, 0, _}, RabbitControllerPid) ->
 %%       Age:     age of the rabbit
 rabbit(MyIndex, {State, Size, Age}, RabbitControllerPid) ->
   io:format("\e[0;38mRestarting rabbit: ~p~n\e[0;37m", [self()]),
-
-  % check if got eaten
-  %receive
-  %  {eaten} -> common_behavior:die(MyIndex, {State, Size, Age})
-  %after 5 -> ok
-  %end,
-  % decide what behavior to do
-  %Rand = rand:uniform(10),
-  % too old, die of age
-  %if Age > 50 -> die(MyIndex, {State, Size, Age});
-  %% 0.2 chance to sleep
-  %  Rand > 7 -> common_behavior:sleep();
-  %% do other behavior
-  %  true -> ok
-  %end,
-
-  %% not dead, find food on neighbouring fields
-%%  Size = 1 + find_grass(neighbours),
-
-  %Todo: the above behaviour seems too complicated for the moment -> implement simple move behaviour below:
-
   timer:sleep(500),
   Rand = rand:uniform(8),
   %send underlying empty field that the rabbit wants to move

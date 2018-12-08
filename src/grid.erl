@@ -12,7 +12,7 @@
 % [register(list_to_atom(integer_to_list(utils:get_index(H, N, 2*N, 0))),spawn(?MODULE, empty, [H, [], []])) || H <- Inner],
 
 %% API
--export([empty/3, emptyFieldController/3]).
+-export([empty/4, emptyFieldController/3]).
 
 %% initializes the grid (border and empty field processes)
 %% args: N: square root of the numbers of grid cells
@@ -26,10 +26,10 @@ emptyFieldController(N, M, [])->
   Bottom = [Z || Z <- All, Z > N*N - N], % bottom border processes
   Frame = lists:sort(lists:usort(lists:merge([Top, Bottom, Left, Right]))), %merge lists, remove duplicates and sort it
 
-  [efc ! {H, border} || H <- Frame], %send a message to itself to register border in list of PID's
+  [self() ! {H, border} || H <- Frame], %send a message to itself to register border in list of PID's
   Inner = lists:subtract(All, Frame), %remaining processes (= all grid processes which are not border)
   % spawn grid-field processes
-  [spawn(?MODULE, empty, [H, [], []]) || H <- Inner],
+  [spawn(?MODULE, empty, [H, [], [], self()]) || H <- Inner],
 
   Pid_list = [receive {I, Pid} -> (lists:sublist(All,I-1) ++ [{I, Pid}] ++ lists:nthtail(I,All)) end || I <- lists:seq(1, N*N)], %receive a list of tuples {Index, PID} for each process on the grid (incl. border)
   List_of_Pids = utils:remove_indices(lists:flatten(Pid_list)), %turn it into a single list and remove superfluous indices
@@ -64,8 +64,8 @@ initialize_controllers(N, M, List_of_Pids, PainterPid) ->
       RabbitControllerPid = spawn(rabbit, rabbit_initializer, [self(), 6, StillEmptyFields, PainterPid]),
       Children = List_of_Pids ++ [{N*N + 2, RabbitControllerPid}], %adding second controller Pid (in this case the rabbit controller)
       initialize_controllers(N, M, Children, PainterPid);
-
-    {rabbit, StillEmptyFields} -> emptyFieldController(N, M, List_of_Pids, PainterPid)
+    % receiving ready from rabbit initializer, second argument is still empty fields list. not necessary atm
+    {rabbit, _} -> emptyFieldController(N, M, List_of_Pids, PainterPid)
   end.
 
 %% manages the grid (empty field processes and other controllers)
@@ -79,7 +79,7 @@ emptyFieldController(N, M, All, PainterPid) ->
     {spawn, Index} -> element(2, Index) ! {gc, lists:nth(N*N+1, All), N}, emptyFieldController(N, M, All, PainterPid);
     {collect_count, Pid} -> Pid ! {empty, N*N}, emptyFieldController(N,M,All, PainterPid);
     {collect_info, Pid} ->
-      element(2, lists:nth(N+2, All)) ! {collect_info, N, efc, Pid, []},
+      element(2, lists:nth(N+2, All)) ! {collect_info, N, self(), Pid, []},
       emptyFieldController(N, M, All, PainterPid);
     {stop} ->
       [P ! {stop} || {_, P} <- utils:get_processes(All)],
@@ -94,16 +94,16 @@ emptyFieldController(N, M, All, PainterPid) ->
 %% args: Index: Index of the field in the grid (or in the list of processes in the empty controller)
 %%       Neigh: list of his surrounding neighbours (list of pids/border only, no tuple)
 %%       Occupant: the process currently on this field (can be an empty list if nothing is on it) (tuple with species (atom) an pid)
-empty(Index, [], []) ->
-  efc ! {Index, self()}, %send Pid of empty process to EmptyFieldController
-  receive {init, Neighbours} -> empty(Index, Neighbours, []) end;
+empty(Index, [], [], EmptyFieldControllerPid) ->
+  EmptyFieldControllerPid ! {Index, self()}, %send Pid of empty process to EmptyFieldController
+  receive {init, Neighbours} -> empty(Index, Neighbours, [], EmptyFieldControllerPid) end;
 
-empty(Index, Neigh, Occupant) ->
+empty(Index, Neigh, Occupant, EmptyFieldControllerPid) ->
   % ----------- static variable declarations ---------
   Right_Neighbour = lists:nth(5, Neigh),
   Left_Neighbour  = lists:nth(4, Neigh),
   OccupierPid     = utils:get_occupier_pid(Occupant),
-  OccupierSpecies = utils:get_Occupant(Occupant),
+  OccupierSpecies = utils:get_occupying_species(Occupant),
 
   % ===================== main message handling loop ====================================
   receive
@@ -112,8 +112,8 @@ empty(Index, Neigh, Occupant) ->
       P = spawn(grass, grass, [{utils:get_index(Index, N, 2*N, 0), self()},{ready, 0, 0}, Pid]),
       %notify grassController of newly spawned grass
       Pid ! {spawned},
-      empty(Index, Neigh, {grass, P});
-    {gc, {_, Pid}, N} -> empty(Index, Neigh, Occupant);
+      empty(Index, Neigh, {grass, P}, EmptyFieldControllerPid);
+    {gc, {_, _}, _} -> empty(Index, Neigh, Occupant, EmptyFieldControllerPid);
 
   % ===== movement process: ask to move, neighbour is asked, answer is received and sent to questioner ----
   % movement request
@@ -123,14 +123,14 @@ empty(Index, Neigh, Occupant) ->
         Desired_Field == border -> erlang:element(2, Occupant) ! {border};
         true -> Desired_Field ! {what, self()} %asking desired field what is currently residing on it
       end,
-      empty(Index, Neigh, Occupant);
+      empty(Index, Neigh, Occupant, EmptyFieldControllerPid);
 
   % ------- serve request from other empty field on what is on this field  ---------
-    {what, Pid} -> Pid ! {answer, OccupierSpecies, self()}, empty(Index, Neigh, Occupant);
+    {what, Pid} -> Pid ! {answer, OccupierSpecies, self()}, empty(Index, Neigh, Occupant, EmptyFieldControllerPid);
 
 
   % ------- receive occupant of neighbour field -------------------------
-    {answer, Occupier, New_Field} when Occupant /= [] -> OccupierPid ! {Occupier, {Index, New_Field}}, empty(Index, Neigh, Occupant);
+    {answer, Occupier, New_Field} when Occupant /= [] -> OccupierPid ! {Occupier, {Index, New_Field}}, empty(Index, Neigh, Occupant, EmptyFieldControllerPid);
 
 
   % ------- receive mating request -------------------------
@@ -140,7 +140,7 @@ empty(Index, Neigh, Occupant) ->
       Number_of_Real_Surrounding_Processes = length(Real_Surrounding_Processes),
       [P ! {u_empty, self()} || P <- Real_Surrounding_Processes],
       io:format("Surrounding real processes: ~p, length: ~p~n", [Real_Surrounding_Processes, Number_of_Real_Surrounding_Processes]),
-      List_of_surrounding_occupants = lists:flatten([receive {occupants, Occ, Pid} -> [{Occ, Pid}] end || I <- lists:seq(1, Number_of_Real_Surrounding_Processes)]),
+      List_of_surrounding_occupants = lists:flatten([receive {occupants, Occ, Pid} -> [{Occ, Pid}] end || _ <- lists:seq(1, Number_of_Real_Surrounding_Processes)]),
       io:format("Surrounding Occupants: ~p~n", [List_of_surrounding_occupants]),
       %Todo: get an empty field and spawn a rabbit on it !!! careful when no empty field is available
       List_of_Emptys = utils:remove_occupied_field(List_of_surrounding_occupants),
@@ -149,35 +149,35 @@ empty(Index, Neigh, Occupant) ->
 
       %mating over, signal rabbit that he can start doing other things now
       element(2, Occupant) ! {mating_over},
-      empty(Index, Neigh, Occupant);
+      empty(Index, Neigh, Occupant, EmptyFieldControllerPid);
 
   % ------- receive occupant request -------------------------
     {u_empty, Asker} ->
       %send occupant and own pid back (pid needed for potential spawning of a new rabbit)
       io:format("sending occupant back to asker: ~p~n", [self()]),
-      Asker ! {occupants, utils:get_Occupant(Occupant), self()},
-      empty(Index, Neigh, Occupant);
+      Asker ! {occupants, utils:get_occupying_species(Occupant), self()},
+      empty(Index, Neigh, Occupant, EmptyFieldControllerPid);
 
 
   % ------- grass trying to register on this field ---------------
-    {grass, Pid} when OccupierSpecies /= [] -> empty(Index, Neigh, Occupant);
-    {grass, Pid} -> empty(Index, Neigh, {grass, Pid});
+    {grass, _} when OccupierSpecies /= [] -> empty(Index, Neigh, Occupant, EmptyFieldControllerPid);
+    {grass, Pid} -> empty(Index, Neigh, {grass, Pid}, EmptyFieldControllerPid);
 
 
   % ------- rabbit trying to register on this field ---------------
-    {rabbit, Pid} when OccupierSpecies == grass -> element(2, Occupant) ! {eaten}, empty(Index, Neigh, {rabbit, Pid});
-    {rabbit, Pid} when OccupierSpecies == rabbit -> Pid ! {occupied}, empty(Index, Neigh, Occupant); %when two processes try to move to the same field at the same time -> the second one gets denied
-    {rabbit, Pid} -> Pid ! {registered}, io:format("registering rabbit: ~p on ~p~n", [Pid, self()]), empty(Index, Neigh, {rabbit, Pid}); %register rabbit
+    {rabbit, Pid} when OccupierSpecies == grass -> element(2, Occupant) ! {eaten}, empty(Index, Neigh, {rabbit, Pid}, EmptyFieldControllerPid);
+    {rabbit, Pid} when OccupierSpecies == rabbit -> Pid ! {occupied}, empty(Index, Neigh, Occupant, EmptyFieldControllerPid); %when two processes try to move to the same field at the same time -> the second one gets denied
+    {rabbit, Pid} -> Pid ! {registered}, io:format("registering rabbit: ~p on ~p~n", [Pid, self()]), empty(Index, Neigh, {rabbit, Pid}, EmptyFieldControllerPid); %register rabbit
 
 
   % ------- species unregistering ---------------------------------
-    {unregister, Species} when OccupierSpecies == Species -> empty(Index, Neigh, []); %unregister only if occupant is the same as the one trying to unregister
-    {unregister, Species} -> empty(Index, Neigh, Occupant); %field is already occupied by something else (e.g. rabbits eats grass, grass unregisters itself -> would unregister rabbit
+    {unregister, Species} when OccupierSpecies == Species -> empty(Index, Neigh, [], EmptyFieldControllerPid); %unregister only if occupant is the same as the one trying to unregister
+    {unregister, _} -> empty(Index, Neigh, Occupant, EmptyFieldControllerPid); %field is already occupied by something else (e.g. rabbits eats grass, grass unregisters itself -> would unregister rabbit
 
 
   % ---------------- information collection -------------------------
-    {collect_info, N, NR, Pid, Info} when Index == N*N - (N + 1) -> Pid ! {collect_info, Info ++ [{Index, self(), Occupant}]}; %last process (bottom right corner)
-    {collect_info, N, NR, Pid, Info} when Left_Neighbour == border -> Right_Neighbour ! {collect_info, N, lists:nth(7, Neigh), Pid, Info ++ [{Index, self(), Occupant}]}; %first process of a row
+    {collect_info, N, _, Pid, Info} when Index == N*N - (N + 1) -> Pid ! {collect_info, Info ++ [{Index, self(), Occupant}]}; %last process (bottom right corner)
+    {collect_info, N, _, Pid, Info} when Left_Neighbour == border -> Right_Neighbour ! {collect_info, N, lists:nth(7, Neigh), Pid, Info ++ [{Index, self(), Occupant}]}; %first process of a row
     {collect_info, N, NR, Pid, Info} when Right_Neighbour == border -> NR ! {collect_info, N, NR, Pid, Info ++ [{Index, self(), Occupant}]}; %last process of a row
     {collect_info, N, NR, Pid, Info} -> Right_Neighbour ! {collect_info, N, NR, Pid, Info ++ [{Index, self(), Occupant}]};
 
@@ -185,7 +185,7 @@ empty(Index, Neigh, Occupant) ->
     {stop} -> OccupierPid ! {stop}, io:format("shuting down process ~p~n", [self()]), halt();
 
   % --------- handle unexpected messages ---------------------------
-    M -> ok, io:format("---------This message should not be received. ------~p, ~p, ~p----~n", [M, self(), Occupant]), empty(Index, Neigh, Occupant) %handling unexpected messages
+    M -> ok, io:format("---------This message should not be received. ------~p, ~p, ~p----~n", [M, self(), Occupant]), empty(Index, Neigh, Occupant, EmptyFieldControllerPid) %handling unexpected messages
 
   % ================== main message loop end ====================================
 
@@ -193,10 +193,10 @@ empty(Index, Neigh, Occupant) ->
   after
     800  ->
       if % nothing happened, request GrassControllerPid to spawn grass
-        OccupierSpecies == [] -> efc ! {spawn, {Index, self()}}, empty(Index, Neigh, []);
-        true -> empty(Index, Neigh, Occupant)
+        OccupierSpecies == [] -> EmptyFieldControllerPid ! {spawn, {Index, self()}}, empty(Index, Neigh, [], EmptyFieldControllerPid);
+        true -> empty(Index, Neigh, Occupant, EmptyFieldControllerPid)
       end
   end,
 
   % restart process
-  empty(Index, Neigh, Occupant).
+  empty(Index, Neigh, Occupant, EmptyFieldControllerPid).

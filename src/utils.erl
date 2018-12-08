@@ -1,8 +1,7 @@
 %%%-------------------------------------------------------------------
-%%% @author alex
-%%% @copyright (C) 2018, <COMPANY>
+%%% @author alex, jonas
 %%% @doc
-%%%
+%%% This module contains functions commonly used in this application which are not present in std libraries
 %%% @end
 %%% Created : 24. Nov 2018 15:27
 %%%-------------------------------------------------------------------
@@ -10,12 +9,13 @@
 -author("alex").
 
 %% API
--export([remove_indices/1, get_processes/1, init_neighbours/5, get_index/4, get_Occupant/1, get_spawning_places/2, get_occupier_pid/1, get_real_neighbours/1, get_empty_field/1, remove_occupied_field/1]).
+-export([remove_indices/1, get_processes/1, init_neighbours/5, get_index/4,
+  get_occupying_species/1, get_spawning_places/2, get_occupier_pid/1, get_real_neighbours/1, get_empty_field/1, remove_occupied_field/1]).
 
 %% removes all non tuple elements (indices) from a list
 remove_indices([]) -> [];
 remove_indices([H | T]) when tuple_size(H) == 2 -> [H] ++ remove_indices(T);
-remove_indices([H | T]) -> remove_indices(T).
+remove_indices([_ | T]) -> remove_indices(T).
 
 %% returns a list of tuples containing only the real processes, no border "processes"
 get_processes([]) -> [];
@@ -28,7 +28,8 @@ get_real_neighbours([]) -> [];
 get_real_neighbours([H | T]) when H == border -> get_real_neighbours(T);
 get_real_neighbours([H | T]) -> [H] ++ get_real_neighbours(T).
 
-%% returns a random pid of an empty field from the given list (list contains tuples with {occupant, Pid})
+%% returns a random pid from the given tuple list
+%% args: List of tuples with occupantspecies atom and its pid {occupant, Pid})
 get_empty_field([]) -> [];
 get_empty_field(List) ->
   List_of_empty_fields = remove_occupied_field(List),
@@ -38,7 +39,8 @@ get_empty_field(List) ->
     true -> lists:nth(rand:uniform(Length), List_of_empty_fields)
   end.
 
-%% removes tuples from the list, which contain a species
+%% removes tuples from a list, which contain a species
+%% args: List of TODO what? :')
 remove_occupied_field([]) -> [];
 remove_occupied_field([{H, _} | T]) when H /= [] -> remove_occupied_field(T);
 remove_occupied_field([H | T]) -> [H] ++ remove_occupied_field(T).
@@ -63,9 +65,10 @@ init_neighbours(N, [{Ind, _} | T], C, R, Acc) ->
 get_index(I, N, Mult, Acc) when I > Mult -> get_index(I, N, Mult + N, Acc + 2);
 get_index(I, N, _Mult, Acc) -> I - (N + 1 + Acc).
 
-%% returns the occupant of an empty field (first element of tuple (second would be his pid) or empty list (meaning no occupant is on this field))
-get_Occupant([]) -> [];
-get_Occupant(Occupant) -> element(1, Occupant).
+%%
+%% returns the occupant of a given field (first element of tuple (second would be his pid) or empty list (meaning no occupant is on this field))
+get_occupying_species([]) -> [];
+get_occupying_species(Occupant) -> element(1, Occupant).
 
 get_occupier_pid([]) -> [];
 get_occupier_pid(Occupant) -> element(2, Occupant).
