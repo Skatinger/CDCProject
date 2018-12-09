@@ -31,12 +31,8 @@ get_real_neighbours([H | T]) -> [H] ++ get_real_neighbours(T).
 %% returns a random pid of an empty field from the given list (list contains tuples with {occupant, Pid})
 get_empty_field([]) -> [];
 get_empty_field(List) ->
-  List_of_empty_fields = remove_occupied_field(List),
-  Length = length(List_of_empty_fields),
-  if
-    Length == 0 -> io:format("no empty field available~n"); %Todo: handle this case, because empty() expects a pid
-    true -> lists:nth(rand:uniform(Length), List_of_empty_fields)
-  end.
+  Length = length(List),
+  element(2, lists:nth(rand:uniform(Length), List)).
 
 %% removes tuples from the list, which contain a species
 remove_occupied_field([]) -> [];

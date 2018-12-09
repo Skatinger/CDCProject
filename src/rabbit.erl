@@ -57,7 +57,6 @@ rabbit_controller(N) ->
 
 
 start_rabbit(MyIndex, RabbitControllerPid) ->
-  io:format("starting rabbit ~p on index: ~p~n", [self(), MyIndex]),
   Empty_Pid = element(2, MyIndex),
   Empty_Pid ! {rabbit, self()},
   receive {registered} -> ok end, %wait for ok from empty field

@@ -145,6 +145,14 @@ empty(Index, Neigh, Occupant) ->
       %Todo: get an empty field and spawn a rabbit on it !!! careful when no empty field is available
       List_of_Emptys = utils:remove_occupied_field(List_of_surrounding_occupants),
       io:format("\e[0;38mPotential spawning places for a neborn rabbit: ~p~n\e[0;37m", [List_of_Emptys]),
+
+      if
+        %no mating possible around initiant (could now check for empty fields around other rabbit)
+        List_of_Emptys == [] -> ok;
+        true ->
+          Spawning_Place_Pid = utils:get_empty_field(List_of_Emptys),
+          io:format("spawning place Pid: ~p~n", [Spawning_Place_Pid])
+      end,
 %%      Pid = utils:get_empty_field(List_of_surrounding_occupants),
 
       %mating over, signal rabbit that he can start doing other things now
