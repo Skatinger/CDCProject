@@ -8,25 +8,30 @@
 -module(master).
 -author("alex, jonas").
 
--export([start/4]).
+-export([start/0]).
 
-start(N, G, R, F) ->
+start() ->
+
+  application:ensure_all_started(cowboy),
+  application:start(cdcproject),
 
   % EmptyFieldController, spawns the simulation grid
-  EfcPid = spawn(node(), grid, emptyFieldController, [N, self(), []]),
+  %EfcPid = spawn(node(), grid, emptyFieldController, [N, self(), []]),
 
   % Painter, informs about current simulation state in console
-  PainterPid = spawn(node(), visual, painter, [N, [EfcPid]]),
+  %PainterPid = spawn(node(), visual, painter, [N, [EfcPid]]),
 
   % inform grid about painter pid
-  EfcPid ! {painter_pid, PainterPid},
-
+  %EfcPid ! {painter_pid, PainterPid},
+  io:format("cdcproject has been started~n"),
   % let simulation run
   timer:sleep(10000),
-  stop([EfcPid, PainterPid]),
-  receive
-    ok -> io:format("==== terminating now ====~n", [])
-  end.
+  %stop([EfcPid, PainterPid]),
+  %receive
+  %  ok -> io:format("==== terminating now ====~n", [])
+  %end.
+
+  io:format("Hello From Master~n").
 
 stop(Pids) ->
   [Pid ! {stop} || Pid <- Pids],

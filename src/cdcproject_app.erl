@@ -9,29 +9,18 @@
 %% Application callbacks
 %% ===================================================================
 
-start(_StartType, _StartArgs) ->
 
-  io:format("Starting Webserver...~n"),
-
-%%  % start cowboy server
-%%  Dispatch = cowboy_router:compile([
-%%    {'_', [
-%%      % routes: index, websocket and sources (js), emtpy atm
-%%      {"/", cowboy_static, {priv_file, websocket, "index.html"}},
-%%      {"/websocket", ws_h, []},
-%%      {"/static/[...]", cowboy_static, {priv_dir, websocket, "static"}}
-%%    ]}
-%%  ]),
-%%  {ok, _} = cowboy:start_http(http, [{port, 8080}], #{
-%%    env => #{dispatch => Dispatch}
-%%  }),
-%%  % start websocket supervisor
-%%  websocket_sup:start_link(),
-
-  % start simulation app
-  io:format("Starting Simulation...~n"),
+start(_Type, _Args) ->
+  Dispatch = cowboy_router:compile([
+    {'_', [
+      {"/", cowboy_static, {priv_file, erlgraph, "index.html"}}
+    ]}
+  ]),
+  {ok, _} = cowboy:start_http(http, 100, [{port, 9999}], [
+    {env, [{dispatch, Dispatch}]}
+  ]),
   cdcproject_sup:start_link().
+
 
 stop(_State) ->
   ok.
-

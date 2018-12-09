@@ -23,7 +23,5 @@ start_link() ->
 %% ===================================================================
 
 init([]) ->
-    master:start(5,5,5,5),
-    % one for all restarts everything if some process crashes
-    {ok, { {one_for_all, 5, 10}, []} }.
+    {ok, { {one_for_one, 5, 10}, []} }.
 
