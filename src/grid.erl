@@ -168,7 +168,7 @@ empty(Index, Neigh, Occupant, EmptyFieldControllerPid) ->
 
 
   % ------- rabbit trying to register on this field ---------------
-    {rabbit, Pid} when OccupierSpecies == grass -> element(2, Occupant) ! {eaten}, empty(Index, Neigh, {rabbit, Pid}, EmptyFieldControllerPid);
+    {rabbit, Pid} when OccupierSpecies == grass -> Pid ! {registered}, element(2, Occupant) ! {eaten}, empty(Index, Neigh, {rabbit, Pid}, EmptyFieldControllerPid);
     {rabbit, Pid} when OccupierSpecies == rabbit -> Pid ! {occupied}, empty(Index, Neigh, Occupant, EmptyFieldControllerPid); %when two processes try to move to the same field at the same time -> the second one gets denied
     {rabbit, Pid} -> Pid ! {registered}, io:format("registering rabbit: ~p on ~p~n", [Pid, self()]), empty(Index, Neigh, {rabbit, Pid}, EmptyFieldControllerPid); %register rabbit
 
