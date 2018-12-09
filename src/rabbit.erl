@@ -10,7 +10,7 @@
 -author("alex").
 
 %% API
--export([rabbit_initializer/4, rabbit_controller/1, start_rabbit/2]).
+-export([rabbit_initializer/4, rabbit_controller/1, start_rabbit/2, rabbit/3]).
 
 
 %% ------------------------ public ------------------------------------
@@ -81,11 +81,11 @@ rabbit(MyIndex, {_, 0, _}, RabbitControllerPid) ->
 %%       Size:    current size of the rabbit
 %%       Age:     age of the rabbit
 rabbit(MyIndex, {State, Size, Age}, RabbitControllerPid) ->
-  io:format("\e[0;38mRestarting rabbit: ~p~n\e[0;37m", [self()]),
+%%  io:format("\e[0;38mRestarting rabbit: ~p~n\e[0;37m", [self()]),
   timer:sleep(500),
   Rand = rand:uniform(8),
   %send underlying empty field that the rabbit wants to move
-  element(2, MyIndex) ! {move, Rand}, %Todo: complete behaviour (mating)
+  element(2, MyIndex) ! {move, Rand},
   %receive what is currently on the field the rabbit wants to move to
   receive %Pid is the pid of the desired field, so that the rabbit can register itself on it
     {stop} -> io:format("\e[0;35mTerminating rabbit ~p~n\e[0;37m", [self()]), ok;
