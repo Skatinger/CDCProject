@@ -11,7 +11,10 @@
 -export([start/0]).
 
 start() ->
-
+  application:start(crypto),
+  application:start(cowlib),
+  application:start(ranch),
+  application:start(cowboy),
   application:ensure_all_started(cowboy),
   application:start(cdcproject),
 

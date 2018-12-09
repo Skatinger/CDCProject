@@ -13,7 +13,7 @@
 start(_Type, _Args) ->
   Dispatch = cowboy_router:compile([
     {'_', [
-      {"/", cowboy_static, {priv_file, erlgraph, "index.html"}}
+      {"/", cowboy_static, {priv_file, cdcproject, "index.html"}}
     ]}
   ]),
   {ok, _} = cowboy:start_http(http, 100, [{port, 9999}], [
