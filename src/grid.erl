@@ -68,26 +68,26 @@ initialize_controllers(N, M, List_of_Pids, PainterPid, Enodes) ->
       Children = List_of_Pids ++ [{N * N + 2, RabbitControllerPid}], %adding second controller Pid (in this case the rabbit controller)
       initialize_controllers(N, M, Children, PainterPid, Enodes);
   % receiving ready from rabbit initializer, second argument is still empty fields list. not necessary atm
-    {rabbit, _} -> emptyFieldController(N, M, List_of_Pids, PainterPid)
+    {rabbit, _} -> emptyFieldController(N, M, List_of_Pids, PainterPid, Enodes)
   end.
 
 %% manages the grid (empty field processes and other controllers)
 %% args: N: square root of the numbers of grid cells
 %%       M: pid of master process
 %%       All: a list of tuples containing the index and pid of each spawned process (by this controller)
-emptyFieldController(N, M, All, PainterPid) ->
+emptyFieldController(N, M, All, PainterPid, Enodes) ->
   %This is the controller that is used after all the empty processes have been instantiated
   receive
   % empty fields trying to spawn grass on itself
-    {spawn, Index} -> element(2, Index) ! {gc, lists:nth(N * N + 1, All), N},
-      emptyFieldController(N, M, All, PainterPid);
-    {spawn_rabbit, {_, Pid}} -> Pid ! {rc, lists:nth(N * N + 2, All), N},
+    {spawn, Index} -> element(2, Index) ! {gc, lists:nth(N * N + 1, All), N, lists:nth(rand:uniform(length(Enodes)), Enodes)},
+      emptyFieldController(N, M, All, PainterPid, Enodes);
+    {spawn_rabbit, {_, Pid}} -> Pid ! {rc, lists:nth(N * N + 2, All), N, lists:nth(rand:uniform(length(Enodes)), Enodes)},
 %%      io:format("\e[0;31mEFC, sending RCP to empty~n\e[0;37m", []),
-      emptyFieldController(N, M, All, PainterPid);
-    {collect_count, Pid} -> Pid ! {empty, N * N}, emptyFieldController(N, M, All, PainterPid);
+      emptyFieldController(N, M, All, PainterPid, Enodes);
+    {collect_count, Pid} -> Pid ! {empty, N * N}, emptyFieldController(N, M, All, PainterPid, Enodes);
     {collect_info, Pid} ->
       element(2, lists:nth(N + 2, All)) ! {collect_info, N, self(), Pid, []},
-      emptyFieldController(N, M, All, PainterPid);
+      emptyFieldController(N, M, All, PainterPid, Enodes);
     {stop} ->
       [P ! {stop} || {_, P} <- utils:get_processes(All)],
       io:format("emptyController terminating, sending to all grid processes~n"),
@@ -115,12 +115,12 @@ empty(Index, Neigh, Occupant, EmptyFieldControllerPid) ->
   % ===================== main message handling loop ====================================
   receive
   %receive GrassControllerPid from GridController, in order to spawn grass if still empty
-    {gc, {_, Pid}, N} when OccupierSpecies == [] ->
-      P = spawn(grass, grass, [{utils:get_index(Index, N, 2 * N, 0), self()}, {ready, 0, 0}, Pid]),
+    {gc, {_, Pid}, N, Enode} when OccupierSpecies == [] ->
+      P = spawn(Enode, ?MODULE, grass, [{utils:get_index(Index, N, 2 * N, 0), self()}, {ready, 0, 0}, Pid]),
       %notify grassController of newly spawned grass
       Pid ! {spawned},
       empty(Index, Neigh, {grass, P}, EmptyFieldControllerPid);
-    {gc, {_, _}, _} -> empty(Index, Neigh, Occupant, EmptyFieldControllerPid);
+    {gc, {_, _}, _, _} -> empty(Index, Neigh, Occupant, EmptyFieldControllerPid);
 
   % ===== movement process: ask to move, neighbour is asked, answer is received and sent to questioner ----
   % movement request
@@ -175,10 +175,10 @@ empty(Index, Neigh, Occupant, EmptyFieldControllerPid) ->
       element(2, Occupant) ! {mating_over},
       empty(Index, Neigh, Occupant, EmptyFieldControllerPid);
 
-    {spawn_rabbit, _, _} when OccupierSpecies /= [] -> empty(Index, Neigh, Occupant, EmptyFieldControllerPid);
-    {spawn_rabbit, Rabbit_Controller_Pid, N} ->
+    {spawn_rabbit, _, _, _} when OccupierSpecies /= [] -> empty(Index, Neigh, Occupant, EmptyFieldControllerPid);
+    {spawn_rabbit, Rabbit_Controller_Pid, N, Enode} ->
 %%      io:format("\e[0;31mCan we spawn new rabbits?~n\e[0;37m", []),
-      P = spawn(rabbit, rabbit, [{utils:get_index(Index, N, 2 * N, 0), self()}, {ready, 0, 0}, Rabbit_Controller_Pid]),
+      P = spawn(Enode, ?MODULE, rabbit, [{utils:get_index(Index, N, 2 * N, 0), self()}, {ready, 0, 0}, Rabbit_Controller_Pid]),
       %notify RabbitController of newly spawned rabbit
       Rabbit_Controller_Pid ! {spawned},
       empty(Index, Neigh, {rabbit, P}, EmptyFieldControllerPid);

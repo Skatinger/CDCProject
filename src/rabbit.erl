@@ -29,9 +29,9 @@ rabbit_initializer(GridPid, N, EmptyFields, PainterPid, Enodes) ->
 
   % spawn rabbits
   % old
-  [spawn(?MODULE, start_rabbit, [Index, self()]) || (Index) <- SpawningPlaces],
+  %[spawn(?MODULE, start_rabbit, [Index, self()]) || (Index) <- SpawningPlaces],
   % TEDA
-  % [spawn(Node, ?MODULE, start_rabbit, [Index, self()]) || (Index) <- SpawningPlaces, Node <- [lists:nth(random:uniform(length(Enodes)), Enodes)]],
+  [spawn(Node, ?MODULE, start_rabbit, [Index, self()]) || (Index) <- SpawningPlaces, Node <- [lists:nth(rand:uniform(length(Enodes)), Enodes)]],
 
 
   % send still empty fields back to grid

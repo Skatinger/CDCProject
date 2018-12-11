@@ -23,9 +23,9 @@ grass_initializer(GridPid, N, EmptyFields, PainterPid, Enodes) ->
 
   % spawn grasses
   % old
-  [spawn(?MODULE, start_grass, [Index, self()]) || (Index) <- SpawningPlaces],
+  % [spawn(?MODULE, start_grass, [Index, self()]) || (Index) <- SpawningPlaces],
   % teda
-  % [spawn(Node, ?MODULE, start_grass, [Index, self()]) || (Index) <- SpawningPlaces, Node <- [lists:nth(random:uniform(length(Enodes)), Enodes)]],
+  [spawn(Node, ?MODULE, start_grass, [Index, self()]) || (Index) <- SpawningPlaces, Node <- [lists:nth(rand:uniform(length(Enodes)), Enodes)]],
 
 
   % send still empty fields back to grid
