@@ -10,13 +10,13 @@
 -author("alex, jonas").
 
 %% API
--export([empty/4, emptyFieldController/3]).
+-export([empty/4, initialemptyFieldController/4]).
 
 %% initializes the grid (border and empty field processes)
 %% args: N: square root of the numbers of grid cells
 %%       M: pid of master process
 %%       []: placeholder for a list of all empty field processes (and the spawned controllers)
-emptyFieldController(N, M, []) ->
+initialemptyFieldController(N, M, [], Enodes) ->
   All = lists:seq(1, N * N),                % all empty field processes
   Right = [Z || Z <- All, Z rem N == 0], % right border processes
   Left = [Z || Z <- All, Z rem N == 1],  % left border processes
@@ -26,10 +26,17 @@ emptyFieldController(N, M, []) ->
 
   [self() ! {H, border} || H <- Frame], %send a message to itself to register border in list of PID's
   Inner = lists:subtract(All, Frame), %remaining processes (= all grid processes which are not border)
-  % spawn grid-field processes
-  [spawn(?MODULE, empty, [H, [], [], self()]) || H <- Inner],
 
-  Pid_list = [receive {I, Pid} ->
+  % TODO Test this spawning procedure
+  % spawn grid-field processes
+  % [{FieldIndex,Node} || FieldIndex <- SpawningFields, Node <- [lists:nth(random:uniform(length(Enodes)), Enodes)]].
+  % old version
+  % [spawn(?MODULE, empty, [H, [], [], self()]) || H <- Inner],
+  % teda version
+  [spawn(Node, ?MODULE, empty, [H, [], [], self()]) || H <- Inner, Node <- [lists:nth(rand:uniform(length(Enodes)), Enodes)]],
+
+
+Pid_list = [receive {I, Pid} ->
     (lists:sublist(All, I - 1) ++ [{I, Pid}] ++ lists:nthtail(I, All)) end || I <- lists:seq(1, N * N)], %receive a list of tuples {Index, PID} for each process on the grid (incl. border)
   List_of_Pids = utils:remove_indices(lists:flatten(Pid_list)), %turn it into a single list and remove superfluous indices
 
@@ -47,19 +54,19 @@ emptyFieldController(N, M, []) ->
   % Children = List_of_Pids, %  ++ [{N*N + 1, lists:nth(1, ControllerPids)}], %adding first controller Pid (in this case the grass controller)
 
   % spawn grass controller first TODO spawning 3 grass ATM, should change to param from master
-  GrassControllerPid = spawn(grass, grass_initializer, [self(), 3, Empty_Processes, PainterPid]),
+  GrassControllerPid = spawn(grass, grass_initializer, [self(), 3, Empty_Processes, PainterPid, Enodes]),
   Children = List_of_Pids ++ [{N * N + 1, GrassControllerPid}],
   % spawn rest of controllers
-  initialize_controllers(N, M, Children, PainterPid).
+  initialize_controllers(N, M, Children, PainterPid, Enodes).
 
 %% starts all controllers, passing the still empty fields to each one, then start emptyFieldController
-initialize_controllers(N, M, List_of_Pids, PainterPid) ->
+initialize_controllers(N, M, List_of_Pids, PainterPid, Enodes) ->
   % receive still empty fields and spawn rabbit controller
   receive
     {grass, StillEmptyFields} ->                                   % TODO spawning 6 rabbits ATM, change 6 to param from master
-      RabbitControllerPid = spawn(rabbit, rabbit_initializer, [self(), 6, StillEmptyFields, PainterPid]),
+      RabbitControllerPid = spawn(rabbit, rabbit_initializer, [self(), 6, StillEmptyFields, PainterPid, Enodes]),
       Children = List_of_Pids ++ [{N * N + 2, RabbitControllerPid}], %adding second controller Pid (in this case the rabbit controller)
-      initialize_controllers(N, M, Children, PainterPid);
+      initialize_controllers(N, M, Children, PainterPid, Enodes);
   % receiving ready from rabbit initializer, second argument is still empty fields list. not necessary atm
     {rabbit, _} -> emptyFieldController(N, M, List_of_Pids, PainterPid)
   end.

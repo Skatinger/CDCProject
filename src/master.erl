@@ -19,9 +19,15 @@ start_server() ->
   application:start(cdcproject).
 
 start(N) ->
-  start_server(),
+  % leave out the server for now
+  % start_server(),
+
+  % read enodes file
+  {ok, [Cookie|Enodes]} = file:consult("enodes.conf"),
+  io:format("Enodes are: ~p~n", [Enodes]),
+
   % EmptyFieldController, spawns the simulation grid
-  EfcPid = spawn(node(), grid, emptyFieldController, [N, self(), []]),
+  EfcPid = spawn(node(), grid, initialemptyFieldController, [N, self(), [], Enodes]),
 
   % Painter, informs about current simulation state in console
   PainterPid = spawn(node(), visual, painter, [N, [EfcPid]]),

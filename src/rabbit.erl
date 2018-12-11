@@ -10,7 +10,7 @@
 -author("alex").
 
 %% API
--export([rabbit_initializer/4, rabbit_controller/1, start_rabbit/2, rabbit/3]).
+-export([rabbit_initializer/5, rabbit_controller/1, start_rabbit/2, rabbit/3]).
 
 
 %% ------------------------ public ------------------------------------
@@ -20,7 +20,7 @@
 %%        Master: pid of master process (maybe unnecessary?)
 %%             N: square root of grid size (maybe unnecessary?)
 %%   EmptyFields: list of fields to spawn on
-rabbit_initializer(GridPid, N, EmptyFields, PainterPid) ->
+rabbit_initializer(GridPid, N, EmptyFields, PainterPid, Enodes) ->
   % get Index of fields to spawn on
   io:format("StillEMptyFields received in rabbit: ~p~n", [EmptyFields]),
 %%  io:format("Length of EmptyFields ~p~n", [EmptyFields]),
@@ -28,7 +28,11 @@ rabbit_initializer(GridPid, N, EmptyFields, PainterPid) ->
   SpawningPlaces = utils:get_spawning_places(Number_of_spawned_rabbits, EmptyFields), %get indices of a random number of grid cells to spawn rabbits on
 
   % spawn rabbits
+  % old
   [spawn(?MODULE, start_rabbit, [Index, self()]) || (Index) <- SpawningPlaces],
+  % TEDA
+  % [spawn(Node, ?MODULE, start_rabbit, [Index, self()]) || (Index) <- SpawningPlaces, Node <- [lists:nth(random:uniform(length(Enodes)), Enodes)]],
+
 
   % send still empty fields back to grid
   io:format("\e[0;32mSpawning places (rabbit) ~p~n \e[0;37m", [SpawningPlaces]),
