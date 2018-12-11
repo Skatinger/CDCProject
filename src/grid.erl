@@ -116,7 +116,7 @@ empty(Index, Neigh, Occupant, EmptyFieldControllerPid) ->
   receive
   %receive GrassControllerPid from GridController, in order to spawn grass if still empty
     {gc, {_, Pid}, N, Enode} when OccupierSpecies == [] ->
-      P = spawn(Enode, ?MODULE, grass, [{utils:get_index(Index, N, 2 * N, 0), self()}, {ready, 0, 0}, Pid]),
+      P = spawn(Enode, grass, grass, [{utils:get_index(Index, N, 2 * N, 0), self()}, {ready, 0, 0}, Pid]),
       %notify grassController of newly spawned grass
       Pid ! {spawned},
       empty(Index, Neigh, {grass, P}, EmptyFieldControllerPid);
@@ -178,7 +178,7 @@ empty(Index, Neigh, Occupant, EmptyFieldControllerPid) ->
     {spawn_rabbit, _, _, _} when OccupierSpecies /= [] -> empty(Index, Neigh, Occupant, EmptyFieldControllerPid);
     {spawn_rabbit, Rabbit_Controller_Pid, N, Enode} ->
 %%      io:format("\e[0;31mCan we spawn new rabbits?~n\e[0;37m", []),
-      P = spawn(Enode, ?MODULE, rabbit, [{utils:get_index(Index, N, 2 * N, 0), self()}, {ready, 0, 0}, Rabbit_Controller_Pid]),
+      P = spawn(Enode, rabbit, rabbit, [{utils:get_index(Index, N, 2 * N, 0), self()}, {ready, 0, 0}, Rabbit_Controller_Pid]),
       %notify RabbitController of newly spawned rabbit
       Rabbit_Controller_Pid ! {spawned},
       empty(Index, Neigh, {rabbit, P}, EmptyFieldControllerPid);
