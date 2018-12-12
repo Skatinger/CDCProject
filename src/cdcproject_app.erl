@@ -14,13 +14,12 @@ start(_Type, _Args) ->
   Dispatch = cowboy_router:compile([
     {'_', [
       {"/", cowboy_static, {priv_file, cdcproject, "index.html"}},
-      {"/js/[...]", cowboy_static, {priv_dir, cdcproject, "js"}},
-      {"/css/[...]", cowboy_static, {priv_dir, cdcproject, "css"}}
+      {"/websocket", ws_h, []}
     ]}
   ]),
-  {ok, _} = cowboy:start_http(http, 100, [{port, 9999}], [
-    {env, [{dispatch, Dispatch}]}
-  ]),
+  {ok, _} = cowboy:start_clear(http, [{port, 8080}], #{
+    env => #{dispatch => Dispatch}
+  }),
   cdcproject_sup:start_link().
 
 
