@@ -15,21 +15,17 @@
 
 %% puts species counts and calls the grid-painter
 painter(Grid, ControllerPids) -> %Grid is the same as N in grid.erl
-  io:format("------------------------------------------------------------------------------ ~p ~n", [whereis(webby)]),
-  GrassCount = rand:uniform(50),
-  RabbitCount = rand:uniform(50),
-  Data = jiffy:encode({[{grass,GrassCount}, {rabbits,RabbitCount}]}),
-  Webby = whereis(webby),
-  if
-    Webby == undefined -> ok;
-    true -> webby ! {update, Data}
-  end,
   SpeciesCounts = get_species_counts(ControllerPids),
   EfcPid = lists:nth(length(ControllerPids), ControllerPids),
   GridState = get_grid_state(EfcPid),
   io:format("======= INFO ========~n", []),
-  io:format("== Current Species Counts: ==~n ] ~p~n", [SpeciesCounts]),
+  io:format("== Current Species Counts: ==~n ~p~n", [SpeciesCounts]),
   paint_grid(GridState, Grid),
+  Webby = whereis(webby),
+  if
+    Webby == undefined -> ok;
+    true -> webby ! {update, jiffy:encode({SpeciesCounts})}
+  end,
   write_state_to_file(SpeciesCounts),
   receive
     {stop} -> write_results_to_file(SpeciesCounts), io:format("terminating painter~n");
@@ -56,7 +52,7 @@ paint_grid([{Index, State, Occupant}|T], N) ->
 %% gets all counts of species from controllers saved in ControllerPids
 get_species_counts(ControllerPids) ->
   [Pid ! {collect_count, self()} || Pid <- ControllerPids],
-  SpeciesCounts = [receive {Species, Count} -> [{Species, Count}] end || _ <- ControllerPids],
+  SpeciesCounts = [receive {Species, Count} -> {Species, Count} end || _ <- ControllerPids],
   SpeciesCounts.
 
 %% sends message to first process and waits for the list to pass through grid and come back (replace first process with controller)
