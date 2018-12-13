@@ -22,7 +22,7 @@ start(N, G, R, F) ->
   EfcPid ! {painter_pid, PainterPid},
 
   % let simulation run
-  timer:sleep(10000),
+  timer:sleep(300000),
   stop([EfcPid, PainterPid]),
   receive
     ok -> io:format("==== terminating now ====~n", [])

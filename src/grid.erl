@@ -38,7 +38,7 @@ emptyFieldController(N, M, []) ->
   io:format("\e[0;31mArray: ~p~n \e[0;37m", [Empty_Processes]),
 
   % receive pid of painter to pass to controllers %TODO make this a method and redundant, if pid is not received app crashes
-  PainterPid = receive {painter_pid, PainterPid} -> PainterPid end,
+  PainterPid = receive {painter_pid, PainterPid1} -> PainterPid1 end,
 
   List_of_Neigh = lists:reverse(utils:init_neighbours(N, Empty_Processes1, (N - 2) * (N - 2), List_of_Pids, [])), %initialise a list of all possible neighbours for each process
   [Empty_Field ! {init, lists:nth(utils:get_index(Ind, N, 2 * N, 0), List_of_Neigh)} || {Ind, Empty_Field} <- Empty_Processes1], %send each process its list of neighbours
@@ -80,6 +80,7 @@ emptyFieldController(N, M, All, PainterPid) ->
     {collect_count, Pid} -> Pid ! {empty, N * N}, emptyFieldController(N, M, All, PainterPid);
     {collect_info, Pid} ->
       element(2, lists:nth(N + 2, All)) ! {collect_info, N, self(), Pid, []},
+      io:format("\e[0;34mIn EFC - starting to collect info (pass msg through grid)~n\e[0;37m", []),
       emptyFieldController(N, M, All, PainterPid);
     {stop} ->
       [P ! {stop} || {_, P} <- utils:get_processes(All)],
@@ -143,8 +144,14 @@ empty(Index, Neigh, Occupant, EmptyFieldControllerPid) ->
 %%      io:format("Surrounding real processes: ~p, length: ~p~n", [Real_Surrounding_Processes, Number_of_Real_Surrounding_Processes]),
 
       %receive list of surrounding occupants (tuple of Occupant and Pid of the empty field)
-      List_of_surrounding_occupants = lists:flatten([receive {occupants, Occ, Pid} ->
-        [{Occ, Pid}] end || _ <- lists:seq(1, Number_of_Real_Surrounding_Processes)]),
+      List_of_surrounding_occupants =
+        lists:flatten(
+          [receive
+             {occupants, Occ, Pid} ->
+               [{Occ, Pid}]
+           after
+             1000 -> {species, self()} %careful: self() here is only a filler
+           end || _ <- lists:seq(1, Number_of_Real_Surrounding_Processes)]),
 %%      io:format("Surrounding Occupants: ~p~n", [List_of_surrounding_occupants]),
       %reduce received list to only contain empty fields
       List_of_Emptys = utils:remove_occupied_field(List_of_surrounding_occupants),
@@ -211,6 +218,7 @@ empty(Index, Neigh, Occupant, EmptyFieldControllerPid) ->
 
   % ---------------- information collection -------------------------
     {collect_info, N, _, Pid, Info} when Index == N * N - (N + 1) ->
+      io:format("\e[0;34mEnd of collect info, sending resulting list back to painter~n\e[0;37m", []),
       Pid ! {collect_info, Info ++ [{Index, self(), Occupant}]}; %last process (bottom right corner)
     {collect_info, N, _, Pid, Info} when Left_Neighbour == border ->
       Right_Neighbour ! {collect_info, N, lists:nth(7, Neigh), Pid, Info ++ [{Index, self(), Occupant}]}; %first process of a row
@@ -222,6 +230,10 @@ empty(Index, Neigh, Occupant, EmptyFieldControllerPid) ->
   % -------- stop this process and its occupier -------------------------------------
     {stop} -> OccupierPid ! {stop}, io:format("shuting down process ~p~n", [self()]), halt();
 
+  % --------- handle messages from neighbours with the occupant information, which arrive too late ---------------------------
+    {occupants, Occ, Pid} -> ok, io:format("---------Too late, new rabbit already spawned. ------~p, ~p, ~p----~n", [self(), Occ, Pid]),
+      empty(Index, Neigh, Occupant, EmptyFieldControllerPid);
+
   % --------- handle unexpected messages ---------------------------
     M -> ok, io:format("---------This message should not be received. ------~p, ~p, ~p----~n", [M, self(), Occupant]),
       empty(Index, Neigh, Occupant, EmptyFieldControllerPid) %handling unexpected messages
@@ -230,7 +242,7 @@ empty(Index, Neigh, Occupant, EmptyFieldControllerPid) ->
 
   % ------ if nothing happened for some time, spawn grass ------------------------
   after
-    800 ->
+    2000 ->
       if % nothing happened, request GrassControllerPid to spawn grass
         OccupierSpecies == [] -> EmptyFieldControllerPid ! {spawn, {Index, self()}},
           empty(Index, Neigh, [], EmptyFieldControllerPid);

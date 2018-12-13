@@ -61,11 +61,11 @@ start_rabbit(MyIndex, RabbitControllerPid) ->
   Empty_Pid ! {rabbit, self()},
   receive {registered} -> ok end, %wait for ok from empty field
   %Todo: spawn rabbits with random Age (otherwise they might die all at the same time)
-  rabbit(MyIndex, {ready, rand:uniform(10), 0}, RabbitControllerPid).
+  rabbit(MyIndex, {ready, rand:uniform(15), 0}, RabbitControllerPid).
 
 % ============================ rabbit behavior =================================
 
-rabbit(MyIndex, {_, _, 50}, RabbitControllerPid) ->
+rabbit(MyIndex, {_, _, 10000}, RabbitControllerPid) ->
   element(2, MyIndex) ! {unregister, rabbit}, %unregister from old field
   io:format("\e[0;31mdying because of age ~n\e[0;37m"),
   common_behavior:die(MyIndex, rabbit, RabbitControllerPid);
