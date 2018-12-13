@@ -15,6 +15,15 @@
 
 %% puts species counts and calls the grid-painter
 painter(Grid, ControllerPids) -> %Grid is the same as N in grid.erl
+  io:format("------------------------------------------------------------------------------ ~p ~n", [whereis(webby)]),
+  GrassCount = rand:uniform(50),
+  RabbitCount = rand:uniform(50),
+  Data = jiffy:encode({[{grass,GrassCount}, {rabbits,RabbitCount}]}),
+  Webby = whereis(webby),
+  if
+    Webby == undefined -> ok;
+    true -> webby ! {update, Data}
+  end,
   SpeciesCounts = get_species_counts(ControllerPids),
   EfcPid = lists:nth(length(ControllerPids), ControllerPids),
   GridState = get_grid_state(EfcPid),
@@ -26,7 +35,7 @@ painter(Grid, ControllerPids) -> %Grid is the same as N in grid.erl
     {stop} -> write_results_to_file(SpeciesCounts), io:format("terminating painter~n");
     {NewControllerPid} -> painter(Grid, [NewControllerPid|ControllerPids])
   after
-    1000 ->  painter(Grid, ControllerPids)
+    1000 ->  EfcPid ! {testing}, painter(Grid, ControllerPids)
   end.
 
 %% ------------------------ private ------------------------------------
