@@ -14,7 +14,8 @@ start(_Type, _Args) ->
   Dispatch = cowboy_router:compile([
     {'_', [
       {"/", cowboy_static, {priv_file, cdcproject, "index.html"}},
-      {"/websocket", ws_h, []}
+      {"/websocket", ws_h, []},
+      {"/static/[...]", cowboy_static, {priv_dir, cdcproject, "static"}}
     ]}
   ]),
   {ok, _} = cowboy:start_clear(http, [{port, 8080}], #{
