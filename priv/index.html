@@ -334,9 +334,11 @@ iframe {
           showScreen('<span style="color: red;">DISCONNECTED </span>');
       };
       function onMessage(evt) {
+          console.log("FUCK");
+          console.log(evt.data);
           showScreen('<span style="color: blue;">RESPONSE: ' + evt.data+ '</span>');
-          //json = JSON.parse(event.data);
-          //update_table(json);
+          json = JSON.parse(evt.data);
+          update_table(json);
           $(".cell:contains('not connected')").remove();
       };
       function onError(evt) {

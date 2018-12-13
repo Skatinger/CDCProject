@@ -14,17 +14,21 @@ websocket_init(State) ->
   {ok, State}.
 
 websocket_handle({text, Msg}, State) ->
-  webby ! {update, "Update received"},
-  {reply, {text, << "That's what she said! ", Msg/binary >>}, State};
+  {reply, {text, << "Received Frame: ", Msg/binary >>}, State};
+
 websocket_handle(_Data, State) ->
   {ok, State}.
 
 websocket_info({timeout, _Ref, Msg}, State) ->
-  % erlang:start_timer(1000, self(), <<"Update: i have no idea">>),
-  {reply, {text, Msg}, State};
+  GrassCount = rand:uniform(50),
+  RabbitCount = rand:uniform(50),
+  Data = jiffy:encode({[{grass,GrassCount}, {rabbits,RabbitCount}]}),
+  io:format("DAta: ~p~n", [Data]),
+  erlang:start_timer(2000, self(), <<"">>),
+  {reply, {text, Data}, State};
 
-websocket_info({update, Msg}, State) ->
-  {reply, {text, Msg}, State};
+websocket_info(Json, State) ->
+  {reply, {text, Json}, State};
 
 websocket_info(_Info, State) ->
   {ok, State}.
