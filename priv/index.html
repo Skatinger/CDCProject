@@ -30,6 +30,7 @@
 body, html {
   height: 100%;
   font-family: sans-serif;
+  background-color: #e2edff;
 }
 
 /* ------------------------------------ */
@@ -170,7 +171,7 @@ iframe {
 }
 
 .button {
-  background-color: #dee1e8; /* #4CAF50;  */ /* Green */
+  background-color: #caccce; /*#dee1e8; /* #4CAF50;  */ /* Green */
   border: none;
   color: white;
   padding: 15px 32px;
@@ -331,6 +332,12 @@ iframe {
   background: #c3cfe2;
 }
 
+.content {
+  background-color: #dee1e8;
+  overflow: auto;
+  height: 300px;
+}
+
     </style>
 
 <!-- ================================ javascript =============================== -->
@@ -350,7 +357,6 @@ window.onload = function () {
           $('#server').val("ws://" + window.location.host + "/websocket");
           if(!("WebSocket" in window)){
               $('#status').append('<p><span style="color: red;">Websockets are not supported in your Browser. Please never use Internet Explorer.</span></p>');
-              $("#navigation").hide();
           } else {
               $('#status').append('<p><span style="color: green;">Websockets are supported in your Browser.</span></p>');
               connect();
@@ -370,6 +376,8 @@ window.onload = function () {
 
       function disconnect() {
           websocket.close();
+          $(".row").not(".header").remove();
+          appendRow("not connected", "not connected");
       };
       window.toggle_connection = function(){
           if(websocket.readyState == websocket.OPEN){
@@ -402,19 +410,18 @@ window.onload = function () {
       function onMessage(evt) {
           console.log(evt.data);
           if (evt.data.indexOf("Stopping") >= 0){
-            showScreen('<span style="color: blue;">SERVER RESPONSE:   ' + evt.data+ '</span>');
+            showScreen('<span style="color: blue;">SERVER RESPONSE:      ' + evt.data+ '</span>');
           } else {
-            showScreen('<span style="color: blue;">DATA RECEIVED [JSON]:   ' + evt.data+ '</span>');
+            showScreen('<span style="color: blue;">DATA RECEIVED [JSON]:      ' + evt.data+ '</span>');
 
             json = JSON.parse(evt.data);
             update_table(json);
             $(".cell:contains('not connected')").remove();
-            //updateData(evt.data);
             updateChart(json);
           }
       };
       function onError(evt) {
-          showScreen('<span style="color: red;">ERROR: ' + evt.data+ '</span>');
+          showScreen('<span style="color: red;">ERROR: Websocket not connected</span>');
       };
       function showScreen(txt) {
           $('#output').prepend('<p>' + txt + '</p>');
@@ -427,17 +434,12 @@ window.onload = function () {
     // json-data processing for table ------------------------------------------------------
  
       // json format:   species:count
-      //never declare global variables lol
-      //var old_count = {};
       function update_table(json) {
         console.log("JSON:");
         console.log(json["rabbit"]);
         $.each(json, function(k, v) {
           if($('.cell:contains(' + k + ')').length > 0) {
             $("div[data-title='" + k + "_count']").text(v);
-            //trend = old_count[k] < v ? "down" : "up";
-            //$("div[data-title='" + k + "_trend']").text(trend);
-            //old_count[k] = $("div[data-title='" + k + "_count']").text();
           } else {
             appendRow(k, v);
           }
@@ -447,7 +449,6 @@ window.onload = function () {
       function appendRow(species, count) {
         $('.table').append('<div class="row ' + species + '"><div class="cell" data-title="species">' + species +
           '</div><div class="cell" data-title="' + species + '_count">' + count);
-          //+ '</div><div class="cell" data-title="' + species + '_trend">linear</div></div>');
       }
 
       // json-data processing for graph ------------------------------------------------------
@@ -482,25 +483,16 @@ var options = {
     type: "line",
     xValueType: "dateTime",
     yValueFormatString: "###",
-    xValueFormatString: "hh:mm:ss",
-    showInLegend: true,
-    name: "Empty",
-    dataPoints: dataPoints1
-  },
-  {
-    type: "line",
-    xValueType: "dateTime",
-    yValueFormatString: "###",
     showInLegend: true,
     name: "Grass",
-    dataPoints: dataPoints2
+    dataPoints: dataPoints1
   }, {
     type: "line",
     xValueType: "dateTime",
     yValueFormatString: "###",
     showInLegend: true,
     name: "Rabbits",
-    dataPoints: dataPoints3
+    dataPoints: dataPoints2
   }]
 };
 
@@ -520,7 +512,6 @@ var updateInterval = 2000;
 // initial value
 var yValue1 = 0;
 var yValue2 = 0;
-var yValue3 = 0;
 
 var time = new Date;
 // starting at 10.00 am
@@ -533,9 +524,8 @@ function updateChart(json) {
     time.setTime(time.getTime() + updateInterval);
 
     // adding random value and rounding it to two digits. 
-    yValue1 = json["empty"]  || 0;//Math.round((yValue1 + deltaY1) * 100) / 100;
-    yValue2 = json["grass"]  || 0;//Math.round((yValue2 + deltaY2) * 100) / 100;
-    yValue3 = json["rabbit"] || 0;//Math.round((yValue3 + deltaY3) * 100) / 100;
+    yValue1 = json["grass"]  || 0;//Math.round((yValue1 + deltaY1) * 100) / 100;
+    yValue2 = json["rabbit"]  || 0;//Math.round((yValue2 + deltaY2) * 100) / 100;
 
     // pushing the new values
     dataPoints1.push({
@@ -546,16 +536,11 @@ function updateChart(json) {
       x: time.getTime(),
       y: yValue2
     });
-    dataPoints3.push({
-      x: time.getTime(),
-      y: yValue3
-    });
   
 
   // updating legend text with  updated with y Value 
-  options.data[0].legendText = "Empty : " + yValue1;
-  options.data[1].legendText = "Grass : " + yValue2;
-  options.data[2].legendText = "Rabbits : " + yValue3;
+  options.data[0].legendText = "Grass : " + yValue1;
+  options.data[1].legendText = "Rabbits : " + yValue2;
   $("#chartContainer").CanvasJSChart().render();
 }
 
@@ -616,7 +601,7 @@ function updateChart(json) {
       </div>
       <div class="line-separator"></div>
         <!-- socket info -->
-        <div id="content" style="background-color: #dee1e8;">
+        <div id="content" class="content">
           <div id="output"></div>
         </div>
       </div>
