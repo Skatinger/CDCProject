@@ -19,6 +19,8 @@ start_server() ->
   application:start(cdcproject).
 
 start(N) ->
+
+  register(master, self()),
   start_server(),
   % EmptyFieldController, spawns the simulation grid
   EfcPid = spawn(node(), grid, emptyFieldController, [N, self(), []]),
@@ -30,7 +32,12 @@ start(N) ->
   EfcPid ! {painter_pid, PainterPid},
   io:format("cdcproject has been started~n"),
   % let simulation run
-  timer:sleep(30000),
+  receive
+    {stop} -> io:format("Received stop from webserver, stopping simulation now...~n"), stop([EfcPid, PainterPid])
+  after
+    30000 ->
+      ok
+  end,
   stop([EfcPid, PainterPid]),
   receive
     ok -> io:format("==== terminating now ====~n", [])

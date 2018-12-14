@@ -168,15 +168,16 @@ iframe {
 .buttons {
   height: 50px;
   width: 100%;
-  display: inline-block;
+  display: inline-flex;
 }
 
 .button {
-  background-color: ##9cc0fc; /* #4CAF50;  */ /* Green */
+  background-color: #dee1e8; /* #4CAF50;  */ /* Green */
   border: none;
   color: white;
   padding: 15px 32px;
   text-align: center;
+  width: 100%;
   text-decoration: none;
   display: inline-block;
   font-size: 16px;
@@ -321,6 +322,16 @@ iframe {
    text-align: center;
 }
 
+.line-separator{
+
+height:1px;
+
+background:#717171;
+
+border-bottom:1px solid #313030;
+
+}
+
     </style>
 
 <!-- ================================ javascript =============================== -->
@@ -361,22 +372,26 @@ window.onload = function () {
       function disconnect() {
           websocket.close();
       };
-      function toggle_connection(){
+      window.toggle_connection = function(){
           if(websocket.readyState == websocket.OPEN){
               disconnect();
           } else {
               connect();
           };
       };
-      function sendTxt() {
+
+      window.sendTxt = function() {
+        console.log("sending text in socket function:");
+        console.log($("#send_txt").val());
           if(websocket.readyState == websocket.OPEN){
               txt = $("#send_txt").val();
               websocket.send(txt);
-              showScreen('sending: ' + txt);
+              showScreen('[CLIENT] Sending stop to server.');
           } else {
-               showScreen('websocket is not connected');
+               showScreen('websocket is not connected.');
           };
       };
+
       function onOpen(evt) {
           showScreen('<span style="color: green;">CONNECTED </span>');
           $("#connected").fadeIn('slow');
@@ -387,12 +402,17 @@ window.onload = function () {
       };
       function onMessage(evt) {
           console.log(evt.data);
-          showScreen('<span style="color: blue;">RESPONSE: ' + evt.data+ '</span>');
-          json = JSON.parse(evt.data);
-          update_table(json);
-          $(".cell:contains('not connected')").remove();
-          //updateData(evt.data);
-          updateChart(json);
+          if (evt.data.indexOf("Stopping") >= 0){
+            showScreen('<span style="color: blue;">SERVER RESPONSE:   ' + evt.data+ '</span>');
+          } else {
+            showScreen('<span style="color: blue;">DATA RECEIVED [JSON]:   ' + evt.data+ '</span>');
+
+            json = JSON.parse(evt.data);
+            update_table(json);
+            $(".cell:contains('not connected')").remove();
+            //updateData(evt.data);
+            updateChart(json);
+          }
       };
       function onError(evt) {
           showScreen('<span style="color: red;">ERROR: ' + evt.data+ '</span>');
@@ -400,8 +420,7 @@ window.onload = function () {
       function showScreen(txt) {
           $('#output').prepend('<p>' + txt + '</p>');
       };
-      function clearScreen()
-      {
+      window.clearScreen = function(){
           $('#output').html("");
       };
 
@@ -580,30 +599,23 @@ function updateChart(json) {
       <!-- server status interface -->
       <div class="wrap-table-right">
         <h2 class="status-header">Webserver Status</h2>
-        <div class="buttons">
-          <button class="button" style="float:left;" type="button" onclick="toggle_connection()">Connect / Disconnect</button>
-          <button class="button" id="clear" onclick="clearScreen()" >Clear text</button>
-          <div id="connected" style="background-color: black; width: 10px; float: right;">
-          <h3>
-            <input type='text' id="send_txt" value=></input>
-          </h3>
+        <div class="buttons" style="">
+          <button class="button" type="button" onclick="toggle_connection()">Connect / Disconnect</button>
+          <button class="button" type="button" onclick="sendTxt();">Stop Simulation</button>
+          <button class="button" id="clear" onclick="clearScreen()">Clear text</button>
         </div>
-          <button class="button" style="float: right;" type="button" onclick="sendTxt();">send</button>
-        </div>
-
         <div>
         <h3 id="connecting" style="float:left;">
-          <input class="input-field" type='text' id="server" value=""></input>
+          <input type='hidden' id="server" value=""></input>
         </h3>
         <div id="connected">
           <h3>
-            <input type='text' id="send_txt" value=></input>
           </h3>
         </div>
       </div>
-
+      <div class="line-separator"></div>
         <!-- socket info -->
-        <div id="content">
+        <div id="content" style="background-color: #dee1e8;">
           <div id="output"></div>
         </div>
       </div>

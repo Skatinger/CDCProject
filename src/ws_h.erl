@@ -13,8 +13,9 @@ websocket_init(State) ->
   register(webby, self()),
   {ok, State}.
 
-websocket_handle({text, Msg}, State) ->
-  {reply, {text, << "Received Frame: ", Msg/binary >>}, State};
+websocket_handle({text, _}, State) ->
+  master ! {stop},
+  {reply, {text, << "Stopping Simuation..." >>}, State};
 
 websocket_handle(_Data, State) ->
   {ok, State}.
