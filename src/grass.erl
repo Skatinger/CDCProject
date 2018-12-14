@@ -65,7 +65,5 @@ grass(MyIndex, {State, Size, Age}, GrassControllerPid) ->
   %% check if got eaten
   receive
     {eaten} -> common_behavior:die(MyIndex, grass, GrassControllerPid)
-  after 50 -> ok
-  end,
-  grass(MyIndex, {State, Size + 1, Age + 1}, GrassControllerPid).
+  end.
 

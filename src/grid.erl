@@ -60,8 +60,14 @@ initialize_controllers(N, M, List_of_Pids, PainterPid) ->
       RabbitControllerPid = spawn(rabbit, rabbit_initializer, [self(), 6, StillEmptyFields, PainterPid]),
       Children = List_of_Pids ++ [{N * N + 2, RabbitControllerPid}], %adding second controller Pid (in this case the rabbit controller)
       initialize_controllers(N, M, Children, PainterPid);
-  % receiving ready from rabbit initializer, second argument is still empty fields list. not necessary atm
-    {rabbit, _} -> emptyFieldController(N, M, List_of_Pids, PainterPid)
+  % receiving ready from rabbit initializer, second argument is still empty fields list.
+    {rabbit, StillEmptyFields2} ->
+      FoxControllerPid = spawn(fox, fox_initializer, [self(), 3, StillEmptyFields2, PainterPid]),
+      Children = List_of_Pids ++ [{N * N + 3, FoxControllerPid}], %adding third controller Pid (in this case the fox controller)
+      io:format("Children: ~p~n", [Children]),
+      initialize_controllers(N, M, Children, PainterPid);
+    {fox, _} ->
+      emptyFieldController(N, M, List_of_Pids, PainterPid)
   end.
 
 %% manages the grid (empty field processes and other controllers)
@@ -76,6 +82,8 @@ emptyFieldController(N, M, All, PainterPid) ->
       emptyFieldController(N, M, All, PainterPid);
     {spawn_rabbit, {_, Pid}} -> Pid ! {rc, lists:nth(N * N + 2, All), N},
 %%      io:format("\e[0;31mEFC, sending RCP to empty~n\e[0;37m", []),
+      emptyFieldController(N, M, All, PainterPid);
+    {spawn_fox, {_, Pid}} -> Pid ! {fc, lists:nth(N * N + 3, All), N},
       emptyFieldController(N, M, All, PainterPid);
     {collect_count, Pid} -> Pid ! {empty, N * N}, emptyFieldController(N, M, All, PainterPid);
     {collect_info, Pid} ->
@@ -160,7 +168,7 @@ empty(Index, Neigh, Occupant, EmptyFieldControllerPid) ->
       if
       %no mating possible around initiant (could now check for empty fields around other rabbit)
         List_of_Emptys == [] -> ok;
-        true ->
+        OccupierSpecies == rabbit ->
           Spawning_Place_Pid = utils:get_empty_field(List_of_Emptys), %get random empty field to spawn rabbit on it
 %%          io:format("spawning place Pid: ~p~n", [Spawning_Place_Pid]),
 
@@ -168,7 +176,12 @@ empty(Index, Neigh, Occupant, EmptyFieldControllerPid) ->
           {Rabbit_Controller_Pid, Square_of_Gridsize} = receive {rc, {_, Pid}, N} -> {Pid, N} end,
           %tell SpawningPlace to spawn a rabbit on itself
 %%          io:format("\e[0;31mRCP: ~p, N: ~p~n\e[0;37m", [Rabbit_Controller_Pid, Square_of_Gridsize]),
-          Spawning_Place_Pid ! {spawn_rabbit, Rabbit_Controller_Pid, Square_of_Gridsize}
+          Spawning_Place_Pid ! {spawn_rabbit, Rabbit_Controller_Pid, Square_of_Gridsize};
+        true -> %mate foxes here:
+          Spawning_Place_Pid = utils:get_empty_field(List_of_Emptys), %get random empty field to spawn fox on it
+          EmptyFieldControllerPid ! {spawn_fox, {Index, self()}}, %request FoxControllerPid and Gridsize
+          {Fox_Controller_Pid, Square_of_Gridsize} = receive {fc, {_, Pid}, N} -> {Pid, N} end,
+          Spawning_Place_Pid ! {spawn_fox, Fox_Controller_Pid, Square_of_Gridsize}
       end,
 
       %mating over, signal rabbit that he can start doing other things now
@@ -182,6 +195,13 @@ empty(Index, Neigh, Occupant, EmptyFieldControllerPid) ->
       %notify RabbitController of newly spawned rabbit
       Rabbit_Controller_Pid ! {spawned},
       empty(Index, Neigh, {rabbit, P}, EmptyFieldControllerPid);
+
+    {spawn_fox, _, _} when OccupierSpecies /= [] -> empty(Index, Neigh, Occupant, EmptyFieldControllerPid);
+    {spawn_fox, Fox_Controller_Pid, N} ->
+      P = spawn(fox, fox, [{utils:get_index(Index, N, 2 * N, 0), self()}, {ready, 0, 0}, Fox_Controller_Pid]),
+      Fox_Controller_Pid ! {spawned},
+      empty(Index, Neigh, {fox, P}, EmptyFieldControllerPid);
+
 
   % ------- receive occupant request -------------------------
     {u_empty, Asker} ->
@@ -201,13 +221,21 @@ empty(Index, Neigh, Occupant, EmptyFieldControllerPid) ->
       empty(Index, Neigh, {rabbit, Pid}, EmptyFieldControllerPid);
     {rabbit, Pid} when OccupierSpecies == rabbit -> Pid ! {occupied},
       empty(Index, Neigh, Occupant, EmptyFieldControllerPid); %when two processes try to move to the same field at the same time -> the second one gets denied
+    {rabbit, Pid} when OccupierSpecies == fox -> Pid ! {occupied},
+      empty(Index, Neigh, Occupant, EmptyFieldControllerPid);
     {rabbit, Pid} -> Pid ! {registered}, io:format("registering rabbit: ~p on ~p~n", [Pid, self()]),
       empty(Index, Neigh, {rabbit, Pid}, EmptyFieldControllerPid); %register rabbit
 
 
   % ------ fox trying to register on this field ------------------
-  % TODO maybe or also not :')
-
+    {fox, Pid} when OccupierSpecies == grass -> Pid ! {occupied},
+      empty(Index, Neigh, Occupant, EmptyFieldControllerPid);
+    {fox, Pid} when OccupierSpecies == fox -> Pid ! {occupied},
+      empty(Index, Neigh, Occupant, EmptyFieldControllerPid);
+    {fox, Pid} when OccupierSpecies == rabbit -> Pid ! {registered}, element(2, Occupant) ! {eaten},
+      empty(Index, Neigh, {fox, Pid}, EmptyFieldControllerPid); %when two processes try to move to the same field at the same time -> the second one gets denied
+    {fox, Pid} -> Pid ! {registered}, io:format("registering Fox: ~p on ~p~n", [Pid, self()]),
+      empty(Index, Neigh, {fox, Pid}, EmptyFieldControllerPid); %register fox
 
   % ------- species unregistering ---------------------------------
     {unregister, Species} when OccupierSpecies == Species ->
@@ -232,7 +260,9 @@ empty(Index, Neigh, Occupant, EmptyFieldControllerPid) ->
     {stop} -> ok;
 
   % --------- handle messages from neighbours with the occupant information, which arrive too late ---------------------------
-    {occupants, Occ, Pid} -> ok, io:format("---------Too late, new rabbit already spawned. ------~p, ~p, ~p----~n", [self(), Occ, Pid]),
+    {occupants, Occ, Pid} when Occ == rabbit -> ok, io:format("---------Too late, new rabbit already spawned. ------~p, ~p, ~p----~n", [self(), Occ, Pid]),
+      empty(Index, Neigh, Occupant, EmptyFieldControllerPid);
+    {occupants, Occ, Pid} -> ok, io:format("---------Too late, new FOX already spawned. ------~p, ~p, ~p----~n", [self(), Occ, Pid]),
       empty(Index, Neigh, Occupant, EmptyFieldControllerPid);
 
   % --------- handle unexpected messages ---------------------------

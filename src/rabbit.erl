@@ -89,7 +89,8 @@ rabbit(MyIndex, {State, Size, Age}, RabbitControllerPid) ->
   %receive what is currently on the field the rabbit wants to move to
   receive %Pid is the pid of the desired field, so that the rabbit can register itself on it
     {stop} -> io:format("\e[0;35mTerminating rabbit ~p~n\e[0;37m", [self()]), ok;
-    {fox} -> io:format("Don't move! ~n"), rabbit(MyIndex, {State, Size - 1, Age + 1}, RabbitControllerPid); %Pid not necessary for fox, since rabbit wont move
+    {eaten} -> common_behavior:die(MyIndex, rabbit, RabbitControllerPid);
+    {fox, {_, _}} -> io:format("Don't move! ~n"), rabbit(MyIndex, {State, Size - 1, Age + 1}, RabbitControllerPid); %Pid not necessary for fox, since rabbit wont move
     %if adjacent field is occupied by another rabbit, try to mate (no movement necessary), spawn child on a surrounding empty field (if available)
     {rabbit, {Index, Pid}} ->
       io:format("\e[0;35mTrying to mate ~p on field ~p~n\e[0;37m", [self(), MyIndex]),
@@ -107,8 +108,8 @@ rabbit(MyIndex, {State, Size, Age}, RabbitControllerPid) ->
         {occupied} -> rabbit(MyIndex, {State, Size - 1, Age + 1}, RabbitControllerPid); %field is already occupied (happens if zwo rabbits try to register at the same time on the same field)
         {registered} ->
           element(2, MyIndex) ! {unregister, rabbit}, %unregister from old field
-          rabbit({Index, Pid}, {State, Size + 5, Age + 1}, RabbitControllerPid);
-        M -> io:format("============ WTF v2 ======== ~p, ~p~n", [self(), M]), rabbit(MyIndex, {State, Size - 1, Age + 1}, RabbitControllerPid)
+          rabbit({Index, Pid}, {State, Size + 5, Age + 1}, RabbitControllerPid)
+%%        M -> io:format("============ WTF v2 ======== ~p, ~p~n", [self(), M]), rabbit(MyIndex, {State, Size - 1, Age + 1}, RabbitControllerPid)
       end;
 
     {[], {Index, Pid}} ->
@@ -118,8 +119,8 @@ rabbit(MyIndex, {State, Size, Age}, RabbitControllerPid) ->
         {occupied} -> rabbit(MyIndex, {State, Size - 1, Age + 1}, RabbitControllerPid); %field is already occupied (happens if zwo rabbits try to register at the same time on the same field)
         {registered} ->
           element(2, MyIndex) ! {unregister, rabbit}, %unregister from old field
-          rabbit({Index, Pid}, {State, Size - 1, Age + 1}, RabbitControllerPid);
-        M -> io:format("============ WTF ======== ~p, ~p~n", [self(), M]), rabbit(MyIndex, {State, Size -1, Age + 1}, RabbitControllerPid)
+          rabbit({Index, Pid}, {State, Size - 1, Age + 1}, RabbitControllerPid)
+%%        M -> io:format("============ WTF (rabbit) ======== ~p, ~p~n", [self(), M]), rabbit(MyIndex, {State, Size -1, Age + 1}, RabbitControllerPid)
       end;
     {border} -> io:format("end of the world (border) ~n"), rabbit(MyIndex, {State, Size - 1, Age + 1}, RabbitControllerPid);
     M -> io:format("Unexpected rabbit behaviour ~p, ~p~n", [self(), M]), rabbit(MyIndex, {State, Size -1, Age + 1}, RabbitControllerPid)
