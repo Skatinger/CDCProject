@@ -54,13 +54,5 @@ stop(Pids) ->
 restart(Pids, N) ->
   [Pid ! {stop} || Pid <- Pids],
   io:format("Restarting Simulation...~n"),
-  Webby = whereis(webby),
-  if
-    Webby == undefined -> ok;
-    true -> webby ! {update, "Restarting Network Simulation..."}
-  end,
-  % ensure all processes have died
-  io:format("going to sleep~n"),
-  % timer:sleep(2000),
-  io:format("now calling simulate"),
+  messaging:inform_websocket(update, "Restarting Network Simulation..."),
   simulate(N).

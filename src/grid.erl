@@ -273,7 +273,7 @@ empty(Index, Neigh, Occupant, EmptyFieldControllerPid) ->
 
   % ------ if nothing happened for some time, spawn grass ------------------------
   after
-    2000 ->
+    1000 ->
       if % nothing happened, request GrassControllerPid to spawn grass
         OccupierSpecies == [] -> EmptyFieldControllerPid ! {spawn, {Index, self()}},
           empty(Index, Neigh, [], EmptyFieldControllerPid);
