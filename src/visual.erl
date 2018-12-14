@@ -31,7 +31,7 @@ painter(Grid, ControllerPids) -> %Grid is the same as N in grid.erl
     {stop} -> write_results_to_file(SpeciesCounts), io:format("terminating painter~n");
     {NewControllerPid} -> painter(Grid, [NewControllerPid|ControllerPids])
   after
-    1000 ->  EfcPid ! {testing}, painter(Grid, ControllerPids)
+    4000 ->  EfcPid ! {testing}, painter(Grid, ControllerPids)
   end.
 
 %% ------------------------ private ------------------------------------

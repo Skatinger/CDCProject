@@ -61,7 +61,7 @@ start_rabbit(MyIndex, RabbitControllerPid) ->
   Empty_Pid ! {rabbit, self()},
   receive {registered} -> ok end, %wait for ok from empty field
   %Todo: spawn rabbits with random Age (otherwise they might die all at the same time)
-  rabbit(MyIndex, {ready, rand:uniform(15), 0}, RabbitControllerPid).
+  rabbit(MyIndex, {ready, rand:uniform(15) + 5, 0}, RabbitControllerPid).
 
 % ============================ rabbit behavior =================================
 

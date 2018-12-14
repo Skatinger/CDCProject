@@ -30,7 +30,7 @@ start(N) ->
   EfcPid ! {painter_pid, PainterPid},
   io:format("cdcproject has been started~n"),
   % let simulation run
-  timer:sleep(30000),
+  timer:sleep(60000),
   stop([EfcPid, PainterPid]),
   receive
     ok -> io:format("==== terminating now ====~n", [])
