@@ -1,14 +1,22 @@
 # CDCProject
-A simulation of an ecological network using concurrency
+A simulation of an ecological network using concurrency distributed on a network.
 
-## prerequisites
+## Prerequisites
 You need an installation of rebar to successfully fetch dependencies and compile the project.
-It is avaiable here: https://github.com/rebar/rebar
+It is avaiable here: https://github.com/rebar/rebar  
+or for unix users:
+`sudo apt-get install rebar`
 
-Secondly a version of erlang needs to be installed, preferably OTP 20.
+Secondly a version of erlang needs to be installed, preferably OTP 20, otherwise
+new dependencies might not work properly. If you do not have a current version you can
+get it with the following commands:   
+`sudo apt-get purge erlang` *uninstalling old version*  
+`sudo apt-get install esl-erlang=1:20.1` *install new version*  
+
+
 
 ## Running the project
-All commands are supposed to be executed in the top level directory of the project.
+All commands are supposed to be executed in the top level directory of the project.  
 Pay attention that the project folder has the same name as the project.
 
 To run the project you need to fetch all dependencies first.
@@ -18,6 +26,3 @@ Once done, compile the project with `rebar compile`.
 Then you can run it using the script `./run_locally.sh`.
 
 To look at the current simulation state open `localhost:8080` on your browser.
-
-
-_TODO_: add option to run local without server
