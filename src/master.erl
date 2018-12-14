@@ -8,8 +8,17 @@
 -module(master).
 -author("alex, jonas").
 
--export([start/1, start_server/0]).
+-export([start/1]).
+%% to run the web-server as a standalone
+-export([start_server/0]).
 
+%% starts the whole application, to be called with N as gridsize
+start(N) ->
+  register(master, self()),
+  start_server(),
+  simulate(N).
+
+%% starts all dependencies and initializes the web-server
 start_server() ->
   application:start(crypto),
   application:start(cowlib),
@@ -18,23 +27,19 @@ start_server() ->
   application:ensure_all_started(cowboy),
   application:start(cdcproject).
 
-start(N) ->
-  register(master, self()),
-  start_server(),
-  simulate(N).
-
+%% starts the simulation
 simulate(N) ->
-  io:format("in simulate now"),
   % EmptyFieldController, spawns the simulation grid
   EfcPid = spawn(node(), grid, emptyFieldController, [N, self(), []]),
 
-  % Painter, informs about current simulation state in console
+  % Painter, informs about current simulation state in console / website
   PainterPid = spawn(node(), visual, painter, [N, [EfcPid]]),
 
   % inform grid about painter pid
   EfcPid ! {painter_pid, PainterPid},
   io:format("cdcproject has been started~n"),
-  % let simulation run
+
+  % let simulation run until action from interface received or automatic timeout reached
   receive
     {<<"stop">>} -> io:format("Received stop from webserver, stopping simulation now...~n"), stop([EfcPid, PainterPid]);
     {<<"restart">>} -> restart([EfcPid, PainterPid], N)
@@ -42,14 +47,19 @@ simulate(N) ->
     60000 ->
       ok
   end,
+  messaging:inform_websocket(update, "[AUTOMATIC TIMEOUT]"),
   stop([EfcPid, PainterPid]),
+
+  %% wait for last process to exit
   receive
     ok -> io:format("==== terminating now ====~n", [])
   end.
 
 stop(Pids) ->
   [Pid ! {stop} || Pid <- Pids],
-  io:format("sending stop to all controllers~n").
+  messaging:inform_websocket(update, "Simulation terminated."),
+  io:format("sending stop to all controllers~n"),
+  exit(kill).
 
 restart(Pids, N) ->
   [Pid ! {stop} || Pid <- Pids],

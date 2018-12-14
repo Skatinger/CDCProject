@@ -1,8 +1,7 @@
 %%%-------------------------------------------------------------------
 %%% @author alex
-%%% @copyright (C) 2018, <COMPANY>
 %%% @doc
-%%%
+%%% This module implements the behavior of the fox species
 %%% @end
 %%% Created : 25. Nov 2018 11:49
 %%%-------------------------------------------------------------------
