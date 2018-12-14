@@ -387,13 +387,21 @@ window.onload = function () {
           };
       };
 
-      window.sendTxt = function() {
-        console.log("sending text in socket function:");
-        console.log($("#send_txt").val());
+      window.sendStop = function() {
+        console.log("sending stop");
           if(websocket.readyState == websocket.OPEN){
-              txt = $("#send_txt").val();
-              websocket.send(txt);
+              websocket.send("stop");
               showScreen('[CLIENT] Sending stop to server.');
+          } else {
+               showScreen('websocket is not connected.');
+          };
+      };
+
+      window.sendRestart = function() {
+        console.log("sending restart");
+        if(websocket.readyState == websocket.OPEN){
+              websocket.send("restart");
+              showScreen('[CLIENT] Sending restart to server.');
           } else {
                showScreen('websocket is not connected.');
           };
@@ -587,7 +595,8 @@ function updateChart(json) {
         <h2 class="status-header">Webserver Status</h2>
         <div class="buttons" style="">
           <button class="button" type="button" onclick="toggle_connection()">Connect / Disconnect</button>
-          <button class="button" type="button" onclick="sendTxt();">Stop Simulation</button>
+          <button class="button" type="button" onclick="sendStop();">Stop Simulation</button>
+          <button class="button" type="button" onclick="sendRestart();">Restart Simulation</button>
           <button class="button" id="clear" onclick="clearScreen()">Clear text</button>
         </div>
         <div>

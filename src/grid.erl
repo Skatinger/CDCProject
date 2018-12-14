@@ -256,7 +256,7 @@ empty(Index, Neigh, Occupant, EmptyFieldControllerPid) ->
       Right_Neighbour ! {collect_info, N, NR, Pid, Info ++ [{Index, self(), Occupant}]};
 
   % -------- stop this process and its occupier -------------------------------------
-    {stop} when Occupant /= [] -> OccupierPid ! {stop}, io:format("shuting down process ~p~n", [self()]), halt();
+    {stop} when Occupant /= [] -> OccupierPid ! {stop}, io:format("shuting down process ~p~n", [self()]), break();
     {stop} -> ok;
 
   % --------- handle messages from neighbours with the occupant information, which arrive too late ---------------------------
@@ -283,3 +283,6 @@ empty(Index, Neigh, Occupant, EmptyFieldControllerPid) ->
 
   % restart process
   empty(Index, Neigh, Occupant, EmptyFieldControllerPid).
+
+break()->
+  io:format("").

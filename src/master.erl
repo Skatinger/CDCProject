@@ -19,9 +19,12 @@ start_server() ->
   application:start(cdcproject).
 
 start(N) ->
-
   register(master, self()),
   start_server(),
+  simulate(N).
+
+simulate(N) ->
+  io:format("in simulate now"),
   % EmptyFieldController, spawns the simulation grid
   EfcPid = spawn(node(), grid, emptyFieldController, [N, self(), []]),
 
@@ -33,7 +36,8 @@ start(N) ->
   io:format("cdcproject has been started~n"),
   % let simulation run
   receive
-    {stop} -> io:format("Received stop from webserver, stopping simulation now...~n"), stop([EfcPid, PainterPid])
+    {<<"stop">>} -> io:format("Received stop from webserver, stopping simulation now...~n"), stop([EfcPid, PainterPid]);
+    {<<"restart">>} -> restart([EfcPid, PainterPid], N)
   after
     60000 ->
       ok
@@ -46,3 +50,17 @@ start(N) ->
 stop(Pids) ->
   [Pid ! {stop} || Pid <- Pids],
   io:format("sending stop to all controllers~n").
+
+restart(Pids, N) ->
+  [Pid ! {stop} || Pid <- Pids],
+  io:format("Restarting Simulation...~n"),
+  Webby = whereis(webby),
+  if
+    Webby == undefined -> ok;
+    true -> webby ! {update, "Restarting Network Simulation..."}
+  end,
+  % ensure all processes have died
+  io:format("going to sleep~n"),
+  % timer:sleep(2000),
+  io:format("now calling simulate"),
+  simulate(N).
