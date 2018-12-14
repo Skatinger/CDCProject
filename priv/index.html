@@ -279,7 +279,16 @@ iframe {
 }
 
     </style>
+
+<!-- ================================ javascript =============================== -->
+    <script src="https://canvasjs.com/assets/script/jquery-1.11.1.min.js"></script>
+    <script src="https://canvasjs.com/assets/script/jquery.canvasjs.min.js"></script>
     <script type="text/javascript">
+
+window.onload = function () {
+
+
+    // websocket -------------------------------
 
       var websocket;
       $(document).ready(init);
@@ -287,10 +296,10 @@ iframe {
       function init() {
           $('#server').val("ws://" + window.location.host + "/websocket");
           if(!("WebSocket" in window)){
-              $('#status').append('<p><span style="color: red;">websockets are not supported </span></p>');
+              $('#status').append('<p><span style="color: red;">Websockets are not supported in your Browser. Please never use Internet Explorer.</span></p>');
               $("#navigation").hide();
           } else {
-              $('#status').append('<p><span style="color: green;">websockets are supported </span></p>');
+              $('#status').append('<p><span style="color: green;">Websockets are supported in your Browser.</span></p>');
               connect();
           };
               $("#connected").hide();
@@ -334,12 +343,13 @@ iframe {
           showScreen('<span style="color: red;">DISCONNECTED </span>');
       };
       function onMessage(evt) {
-          console.log("FUCK");
           console.log(evt.data);
           showScreen('<span style="color: blue;">RESPONSE: ' + evt.data+ '</span>');
           json = JSON.parse(evt.data);
           update_table(json);
           $(".cell:contains('not connected')").remove();
+          //updateData(evt.data);
+          updateChart(json);
       };
       function onError(evt) {
           showScreen('<span style="color: red;">ERROR: ' + evt.data+ '</span>');
@@ -351,14 +361,16 @@ iframe {
       {
           $('#output').html("");
       };
-    </script>
-    <script type="text/javascript">
-    // ============= message handling =============================
+
+
+    // json-data processing for table ------------------------------------------------------
  
       // json format:   species:count
       //never declare global variables lol
       //var old_count = {};
       function update_table(json) {
+        console.log("JSON:");
+        console.log(json["rabbit"]);
         $.each(json, function(k, v) {
           if($('.cell:contains(' + k + ')').length > 0) {
             $("div[data-title='" + k + "_count']").text(v);
@@ -377,7 +389,148 @@ iframe {
           + '</div><div class="cell" data-title="' + species + '_trend">linear</div></div>');
       }
 
+      // json-data processing for graph ------------------------------------------------------
+
+
+var dataPoints1 = [];
+var dataPoints2 = [];
+var dataPoints3 = [];
+
+var options = {
+  title: {
+    text: "Species Counts in Network"
+  },
+  axisX: {
+    title: "Time"
+  },
+  axisY: {
+    suffix: "",
+    includeZero: false
+  },
+  toolTip: {
+    shared: true
+  },
+  legend: {
+    cursor: "pointer",
+    verticalAlign: "top",
+    fontSize: 22,
+    fontColor: "dimGrey",
+    itemclick: toggleDataSeries
+  },
+  data: [{
+    type: "line",
+    xValueType: "dateTime",
+    yValueFormatString: "###",
+    xValueFormatString: "hh:mm:ss",
+    showInLegend: true,
+    name: "Empty",
+    dataPoints: dataPoints1
+  },
+  {
+    type: "line",
+    xValueType: "dateTime",
+    yValueFormatString: "###",
+    showInLegend: true,
+    name: "Grass",
+    dataPoints: dataPoints2
+  }, {
+    type: "line",
+    xValueType: "dateTime",
+    yValueFormatString: "###",
+    showInLegend: true,
+    name: "Rabbits",
+    dataPoints: dataPoints3
+  }]
+};
+
+var chart = $("#chartContainer").CanvasJSChart(options);
+
+function toggleDataSeries(e) {
+  if (typeof (e.dataSeries.visible) === "undefined" || e.dataSeries.visible) {
+    e.dataSeries.visible = false;
+  }
+  else {
+    e.dataSeries.visible = true;
+  }
+  e.chart.render();
+}
+
+var updateInterval = 2000;
+// initial value
+var yValue1 = 0;
+var yValue2 = 0;
+var yValue3 = 0;
+
+var time = new Date;
+// starting at 10.00 am
+time.setHours(10);
+time.setMinutes(00);
+time.setSeconds(00);
+time.setMilliseconds(00);
+
+function updateChart(json) {
+  count = 1;
+    console.log("hello from udpateChart");
+
+  var deltaY1, deltaY2, deltaY3;
+  for (var i = 0; i < count; i++) {
+    time.setTime(time.getTime() + updateInterval);
+    deltaY1 = -1 + Math.random() * (1 + 1);
+    deltaY2 = -1 + Math.random() * (1 + 1);
+    deltaY3 = -1 + Math.random() * (1 + 1);
+
+
+// delete this
+    // function update_table(json) {
+    //     $.each(json, function(k, v) {
+    //       if($('.cell:contains(' + k + ')').length > 0) {
+    //         $("div[data-title='" + k + "_count']").text(v);
+    //         //trend = old_count[k] < v ? "down" : "up";
+    //         //$("div[data-title='" + k + "_trend']").text(trend);
+    //         //old_count[k] = $("div[data-title='" + k + "_count']").text();
+    //       } else {
+    //         appendRow(k, v);
+    //       }
+    //     });
+    //   }
+  //delete above
+
+    // adding random value and rounding it to two digits. 
+    yValue1 = json["empty"]  || 0;//Math.round((yValue1 + deltaY1) * 100) / 100;
+    yValue2 = json["grass"]  || 0;//Math.round((yValue2 + deltaY2) * 100) / 100;
+    yValue3 = json["rabbit"] || 0;//Math.round((yValue3 + deltaY3) * 100) / 100;
+
+    // pushing the new values
+    dataPoints1.push({
+      x: time.getTime(),
+      y: yValue1
+    });
+    dataPoints2.push({
+      x: time.getTime(),
+      y: yValue2
+    });
+    dataPoints3.push({
+      x: time.getTime(),
+      y: yValue3
+    });
+  }
+
+  // updating legend text with  updated with y Value 
+  options.data[0].legendText = "Empty : " + yValue1;
+  options.data[1].legendText = "Grass : " + yValue2;
+  options.data[2].legendText = "Rabbits : " + yValue3;
+  $("#chartContainer").CanvasJSChart().render();
+}
+// generates first set of dataPoints
+//setInterval(function () { updateChart(json) }, updateInterval);
+
+}
+
+
 </script>
+<!-- ================================ javascript end =============================== -->
+
+
 </head>
 
 <body>
@@ -385,8 +538,10 @@ iframe {
 <div class="limiter">
   <div id="header" style="text-align: center; margin-bottom: 30px; margin-top: 30px;">
     <h1>Ecological Network Status Client</h1>
-</div>
 
+      <div id="chartContainer" style="height: 370px; width: 100%;"></div>
+
+</div>
       <div class="wrap-table">
           <div class="table">
 
