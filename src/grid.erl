@@ -228,7 +228,8 @@ empty(Index, Neigh, Occupant, EmptyFieldControllerPid) ->
       Right_Neighbour ! {collect_info, N, NR, Pid, Info ++ [{Index, self(), Occupant}]};
 
   % -------- stop this process and its occupier -------------------------------------
-    {stop} -> OccupierPid ! {stop}, io:format("shuting down process ~p~n", [self()]), halt();
+    {stop} when Occupant /= [] -> OccupierPid ! {stop}, io:format("shuting down process ~p~n", [self()]), halt();
+    {stop} -> ok;
 
   % --------- handle messages from neighbours with the occupant information, which arrive too late ---------------------------
     {occupants, Occ, Pid} -> ok, io:format("---------Too late, new rabbit already spawned. ------~p, ~p, ~p----~n", [self(), Occ, Pid]),

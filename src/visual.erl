@@ -15,7 +15,7 @@
 
 %% puts species counts and calls the grid-painter
 painter(Grid, ControllerPids) -> %Grid is the same as N in grid.erl
-  SpeciesCounts = get_species_counts(ControllerPids),
+  SpeciesCounts = get_species_counts(ControllerPids, Grid),
   EfcPid = lists:nth(length(ControllerPids), ControllerPids),
   GridState = get_grid_state(EfcPid),
   io:format("======= INFO ========~n", []),
@@ -50,10 +50,12 @@ paint_grid([{Index, State, Occupant}|T], N) ->
   paint_grid(T, N).
 
 %% gets all counts of species from controllers saved in ControllerPids
-get_species_counts(ControllerPids) ->
+get_species_counts(ControllerPids, N) ->
   [Pid ! {collect_count, self()} || Pid <- ControllerPids],
   SpeciesCounts = [receive {Species, Count} -> {Species, Count} end || _ <- ControllerPids],
-  SpeciesCounts.
+  Total_Occupants = utils:get_total_occupants(SpeciesCounts),
+  SpeciesCounts2 = utils:calculate_emptyNr(SpeciesCounts, N-2, Total_Occupants),
+  SpeciesCounts2.
 
 %% sends message to first process and waits for the list to pass through grid and come back (replace first process with controller)
 get_grid_state(EfcPid) ->

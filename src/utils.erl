@@ -11,7 +11,7 @@
 %% API
 -export([remove_indices/1, get_processes/1, init_neighbours/5, get_index/4,
   get_occupying_species/1, get_spawning_places/2, get_occupier_pid/1, get_real_neighbours/1,
-  get_empty_field/1, remove_occupied_field/1]).
+  get_empty_field/1, remove_occupied_field/1, get_total_occupants/1, calculate_emptyNr/3]).
 
 %% removes all non tuple elements (indices) from a list
 remove_indices([]) -> [];
@@ -83,6 +83,16 @@ while([H | T]) ->
 get_spawning_places(N, Fields) ->
   pick_n_many(N, Fields, []).
 
+%% recalculates the number of empty fields
+%% returns the adjusted list
+calculate_emptyNr([{Species, _Count}| T] , N, Total) when Species == empty -> [{Species, N*N - Total}] ++ T;
+calculate_emptyNr([{Species, Count}| T] , N, Total) -> [{Species, Count}] ++ calculate_emptyNr(T, N, Total).
+
+%% calculates the total number of Occupants currently on the grid
+%% returns this number
+get_total_occupants([]) -> 0;
+get_total_occupants([{Species, Count} | T ]) when Species /= empty -> Count + get_total_occupants(T);
+get_total_occupants([{_, _} | T ]) -> get_total_occupants(T).
 
 %%%--------------------------- private ------------------------------
 
@@ -96,4 +106,3 @@ pick_n_many(N, List, Result) ->
   Res = lists:nth(rand:uniform(length(List)), List),
   NewList = lists:delete(Res, List),
   pick_n_many(N - 1, NewList, [Res | Result]).
-

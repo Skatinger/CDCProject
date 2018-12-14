@@ -35,7 +35,7 @@ start(N) ->
   receive
     {stop} -> io:format("Received stop from webserver, stopping simulation now...~n"), stop([EfcPid, PainterPid])
   after
-    30000 ->
+    60000 ->
       ok
   end,
   stop([EfcPid, PainterPid]),
