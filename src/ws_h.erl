@@ -9,7 +9,6 @@ init(Req, Opts) ->
   {cowboy_websocket, Req, Opts}.
 
 websocket_init(State) ->
-  erlang:start_timer(1000, self(), <<"Started Websocket">>),
   register(webby, self()),
   {ok, State}.
 

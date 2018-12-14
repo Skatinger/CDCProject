@@ -12,13 +12,11 @@
 
 
 @font-face {
-  font-family: Poppins-Regular;
-  src: url('../fonts/poppins/Poppins-Regular.ttf'); 
+  font-family: Arial;
 }
 
 @font-face {
-  font-family: Poppins-Bold;
-  src: url('../fonts/poppins/Poppins-Bold.ttf'); 
+  font-family: Arial-Bold;
 }
 
 /*//////////////////////////////////////////////////////////////////
@@ -322,14 +320,15 @@ iframe {
    text-align: center;
 }
 
-.line-separator{
+.line-separator {
+  height:1px;
+  background:#717171;
+  border-bottom:1px solid #313030;
+}
 
-height:1px;
-
-background:#717171;
-
-border-bottom:1px solid #313030;
-
+.line-separator-thick {
+  height:5px;
+  background: #c3cfe2;
 }
 
     </style>
@@ -582,7 +581,7 @@ function updateChart(json) {
     <!-- table & status wrapper -->
     </div class="wrap-info">  
       <!-- table -->
-      <div class="wrap-table" style="float: left;">
+      <div class="wrap-table" style="float: left; margin-top: 50px;">
         <h2 class="status-header">Current Species Counts</h2>
         <div class="table">
           <div class="row header">
@@ -594,10 +593,12 @@ function updateChart(json) {
             <div class="cell">not connected</div>
           </div>
         </div>
-      </div>    
+      </div>
+
+      <div class="line-separator-thick"></div>
 
       <!-- server status interface -->
-      <div class="wrap-table-right">
+      <div class="wrap-table-right" style="margin-top: 50px;">
         <h2 class="status-header">Webserver Status</h2>
         <div class="buttons" style="">
           <button class="button" type="button" onclick="toggle_connection()">Connect / Disconnect</button>
