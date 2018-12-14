@@ -1,16 +1,23 @@
 # CDCProject
 A simulation of an ecological network using concurrency
 
-## Running
-#### Locally
-compile in project directory with "make"
-then start in project directory with "./run_local.sh"
+## prerequisites
+You need an installation of rebar to successfully fetch dependencies and compile the project.
+It is avaiable here: https://github.com/rebar/rebar
 
-#### Including Dependencies and Websocket
-download rebar with apt-get install rebar
+Secondly a version of erlang needs to be installed, preferably OTP 20.
 
-compile in project directory with rebar compile
+## Running the project
+All commands are supposed to be executed in the top level directory of the project.
+Pay attention that the project folder has the same name as the project.
 
-start app with ./run.sh
+To run the project you need to fetch all dependencies first.
+`rebar get-deps` fetches all necessary dependencies.
+Once done, compile the project with `rebar compile`.
 
-The webinterface is hosted on localhost://8080
+Then you can run it using the script `./run_locally.sh`.
+
+To look at the current simulation state open `localhost:8080` on your browser.
+
+
+_TODO_: add option to run local without server

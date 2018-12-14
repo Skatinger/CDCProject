@@ -6,7 +6,9 @@
   {registered, []},
   {applications, [
                   kernel,
-                  stdlib
+                  stdlib,
+                  cowboy,
+                  crypto
                  ]},
   {mod, { cdcproject_app, []}},
   {env, []}

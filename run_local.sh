@@ -14,6 +14,5 @@
 
 
 # works
-cd ebin
-erl -pa ebin -eval "master:start(7,5,5,5)." -eval "init:stop()"
+erl -pa ebin deps/**/ebin -eval "master:start(7)." -eval "init:stop()"
 
