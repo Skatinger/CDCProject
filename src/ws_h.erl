@@ -9,12 +9,12 @@ init(Req, Opts) ->
   {cowboy_websocket, Req, Opts}.
 
 websocket_init(State) ->
-  erlang:start_timer(1000, self(), <<"Started Websocket">>),
   register(webby, self()),
   {ok, State}.
 
-websocket_handle({text, Msg}, State) ->
-  {reply, {text, << "Received Frame: ", Msg/binary >>}, State};
+websocket_handle({text, _}, State) ->
+  master ! {stop},
+  {reply, {text, << "Stopping Simuation..." >>}, State};
 
 websocket_handle(_Data, State) ->
   {ok, State}.
