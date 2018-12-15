@@ -1,7 +1,8 @@
 %%%-------------------------------------------------------------------
 %%% @author alex, jonas
 %%% @doc
-%%% Main module, starts the simulation and a painter which informs about the current simulation state autonomously
+%%% Main module, starts the simulation and a painter which informs about the current simulation state autonomously.
+%%% A server cowboy webserver is started as well, which presents the current simulation data in a user interface
 %%% @end
 %%% Created : 20. Nov 2018 15:26
 %%%-------------------------------------------------------------------
@@ -43,8 +44,9 @@ simulate(N) ->
   receive
     {<<"stop">>} -> io:format("Received stop from webserver, stopping simulation now...~n"), stop([EfcPid, PainterPid]);
     {<<"restart">>} -> restart([EfcPid, PainterPid], N)
+  % automatic timeout
   after
-    60000 ->
+    100000 ->
       ok
   end,
   messaging:inform_websocket(update, "[AUTOMATIC TIMEOUT]"),

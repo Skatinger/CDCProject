@@ -30,7 +30,6 @@ inform_websocket(Atom, Msg) ->
 %%    {collect_info, Info} ->
 %%      % append my info and pass info to follower
 %%      NewInfo = [{MyPid, Species, State, Size, Age} | Info],
-%%      % TODO not exactly sure if this works well. process are spawned index by index, so it should
 %%      io:format("should now send infos forward~n", []),
 %%      (MyPid + 1) ! NewInfo
 %%  %no message received

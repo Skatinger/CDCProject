@@ -7,7 +7,7 @@
 %%% Created : 25. Nov 2018 10:27
 %%%-------------------------------------------------------------------
 -module(visual).
--author("alex").
+-author("alex, jonas").
 
 %% API
 -export([painter/2]).
@@ -15,7 +15,9 @@
 %% ========== visual methods ===============
 
 %% puts species counts and calls the grid-painter
-painter(Grid, ControllerPids) -> %Grid is the same as N in grid.erl
+%% args: Grid: Size of the grid
+%%       ControllerPids: a list of all registered controllers to fetch info from
+painter(Grid, ControllerPids) ->
   SpeciesCounts = get_species_counts(ControllerPids, Grid),
   EfcPid = lists:nth(length(ControllerPids), ControllerPids),
   GridState = get_grid_state(EfcPid),
@@ -26,6 +28,7 @@ painter(Grid, ControllerPids) -> %Grid is the same as N in grid.erl
   write_state_to_file(SpeciesCounts),
   receive
     {stop} -> write_results_to_file(SpeciesCounts), io:format("terminating painter~n");
+    % new controllers register with the painter
     {NewControllerPid} -> painter(Grid, [NewControllerPid|ControllerPids])
   after
     1000 ->  EfcPid ! {testing}, painter(Grid, ControllerPids)

@@ -1,13 +1,12 @@
 %%%-------------------------------------------------------------------
-%%% @author alex
-%%% @copyright (C) 2018, <COMPANY>
+%%% @author alex, jonas
 %%% @doc
-%%%
+%%% This module implements the basic behavior of the grass species
 %%% @end
 %%% Created : 24. Nov 2018 14:01
 %%%-------------------------------------------------------------------
 -module(grass).
--author("alex").
+-author("alex, jonas").
 
 %% API
 -export([grass_initializer/4, start_grass/2, grass_controller/1, grass/3]).
@@ -33,7 +32,6 @@ grass_initializer(GridPid, N, EmptyFields, PainterPid) ->
   messaging:register_self_to_painter(self(), PainterPid),
   % start controller
   grass_controller(Random).
-
 
 %% keeps track of grass count
 %% args:  Master: Pid of Masterprocess

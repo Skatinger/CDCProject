@@ -1,16 +1,15 @@
 %%%-------------------------------------------------------------------
-%%% @author alex
+%%% @author alex, jonas
 %%% @doc
 %%% This module implements the behavior of the fox species
 %%% @end
 %%% Created : 25. Nov 2018 11:49
 %%%-------------------------------------------------------------------
 -module(fox).
--author("jonas").
+-author("jonas, alex").
 
 %% API
 -export([fox_initializer/4, fox_controller/1, start_fox/2, fox/3]).
-
 
 %% ------------------------ public ------------------------------------
 
@@ -53,8 +52,9 @@ fox_controller(N) ->
     {stop} -> ok, io:format("fox_controller ending~n", [])
   end.
 
-
-
+%% initializes a fox
+%% args: MyIndex: the index of the field the fox is spawned on
+%%       FoxControllerPid: Pid of the controller for the fox species
 start_fox(MyIndex,FoxControllerPid) ->
   Empty_Pid = element(2, MyIndex),
   Empty_Pid ! {fox, self()},
@@ -63,8 +63,13 @@ start_fox(MyIndex,FoxControllerPid) ->
   %Todo: spawn foxes with random Age (otherwise they might die all at the same time)
   fox(MyIndex, {ready, rand:uniform(15) + 10, 0}, FoxControllerPid).
 
-% ============================ rabbit behavior =================================
+% ============================ fox behavior =================================
 
+%% Simulates the behavior of a fox
+%% args: MyIndex: index on grid
+%%       State:   current state (eating, sleeping etc.)
+%%       Size:    current size of the rabbit
+%%       Age:     age of the rabbit
 fox(MyIndex, {_, _, 10000}, FoxControllerPid) ->
   element(2, MyIndex) ! {unregister, fox}, %unregister from old field
   io:format("\e[0;31mFox dying because of age ~n\e[0;37m"),
@@ -75,15 +80,10 @@ fox(MyIndex, {_, 0, _}, FoxControllerPid) ->
   io:format("\e[0;31mFox dying because of size (~p) on field ~p~n\e[0;37m", [self(), MyIndex]),
   common_behavior:die(MyIndex, fox, FoxControllerPid);
 
-%% Simulates the behavior of a fox
-%% args: MyIndex: index on grid
-%%       State:   current state (eating, sleeping etc.)
-%%       Size:    current size of the rabbit
-%%       Age:     age of the rabbit
 fox(MyIndex, {State, Size, Age}, FoxControllerPid) ->
-%%  io:format("\e[0;38mRestarting rabbit: ~p~n\e[0;37m", [self()]),
-  timer:sleep(rand:uniform(50) + 450),
+  timer:sleep(rand:uniform(50) + 450), % TODO wiso genau?
   Rand = rand:uniform(8),
+
   %send underlying empty field that the fox wants to move
   element(2, MyIndex) ! {move, Rand},
   %receive what is currently on the field the fox wants to move to
@@ -108,7 +108,6 @@ fox(MyIndex, {State, Size, Age}, FoxControllerPid) ->
         {registered} ->
           element(2, MyIndex) ! {unregister, fox}, %unregister from old field
           fox({Index, Pid}, {State, Size + 5, Age + 1}, FoxControllerPid)
-%%        M -> io:format("============ WTF (fox) v2 ======== ~p, ~p~n", [self(), M]), fox(MyIndex, {State, Size - 1, Age + 1}, FoxControllerPid)
       end;
 
     {[], {Index, Pid}} ->
@@ -119,7 +118,6 @@ fox(MyIndex, {State, Size, Age}, FoxControllerPid) ->
         {registered} ->
           element(2, MyIndex) ! {unregister, fox}, %unregister from old field
           fox({Index, Pid}, {State, Size - 1, Age + 1}, FoxControllerPid)
-%%        M -> io:format("============ WTF (fox) ======== ~p, ~p~n", [self(), M]), fox(MyIndex, {State, Size -1, Age + 1}, FoxControllerPid)
       end;
     {border} -> io:format("end of the world (border) ~n"), fox(MyIndex, {State, Size - 1, Age + 1}, FoxControllerPid);
     M -> io:format("Unexpected fox behaviour ~p, ~p~n", [self(), M]), fox(MyIndex, {State, Size -1, Age + 1}, FoxControllerPid)
