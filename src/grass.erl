@@ -18,7 +18,7 @@
 %%      EmptyFields: list of fields to spawn on
 grass_initializer(GridPid, N, EmptyFields, PainterPid) ->
   % get Index of fields to spawn on %Todo: make sure that not every empty field gets filled with grass -> causes error
-  Random = rand:uniform(N),
+  Random = rand:uniform(N) + 2,
   SpawningPlaces = utils:get_spawning_places(Random, EmptyFields), %get indices of a random number of grid cells to spawn grass on
 
   % spawn grasses

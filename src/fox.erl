@@ -24,7 +24,7 @@ fox_initializer(GridPid, N, EmptyFields, PainterPid) ->
   % get Index of fields to spawn on
   io:format("StillEMptyFields received in FOX: ~p~n", [EmptyFields]),
 %%  io:format("Length of EmptyFields ~p~n", [EmptyFields]),
-  Number_of_spawned_foxes = 10,
+  Number_of_spawned_foxes = 4,
   SpawningPlaces = utils:get_spawning_places(Number_of_spawned_foxes, EmptyFields), %get indices of a random number of grid cells to spawn foxes on
 
   % spawn foxes
