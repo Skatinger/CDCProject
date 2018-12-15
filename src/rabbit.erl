@@ -59,7 +59,7 @@ start_rabbit(MyIndex, RabbitControllerPid) ->
   Empty_Pid ! {rabbit, self()},
   receive {registered} -> ok end, %wait for ok from empty field
   %Todo: maybe adjust random age and size for better simulation results
-  rabbit(MyIndex, {ready, rand:uniform(15) + 25, rand:uniform(20)}, RabbitControllerPid).
+  rabbit(MyIndex, {ready, rand:uniform(10) + 25, rand:uniform(20)}, RabbitControllerPid).
 
 % ============================ rabbit behavior =================================
 %% Simulates the behavior of a rabbit
@@ -95,14 +95,17 @@ rabbit(MyIndex, {State, Size, Age}, RabbitControllerPid) ->
     {fox, {_, _}} -> io:format("Don't move! ~n"), rabbit(MyIndex, {State, Size - 1, Age + 1}, RabbitControllerPid);
 
   % if adjacent field is occupied by another rabbit, try to mate (no movement necessary), spawn child on a surrounding empty field (if available)
-    {rabbit, {_, _}} ->
+    {rabbit, {_, _}} when Size > 3 ->
       io:format("\e[0;35mTrying to mate ~p on field ~p~n\e[0;37m", [self(), MyIndex]),
-      % ask empty field if one of the surrounding fields is empty (surrounding field of himself and maybe also of other rabbit)
+      % ask empty field if one of the surrounding fields is empty (surrounding field of himself and maybe also of other rabbit
       element(2, MyIndex) ! {mating},
       % wait for mating to be over before overloading its empty field with new requests
       receive {mating_over} -> ok end,
       %Todo: fast forward age or size, since mating is exhausting :) or not, simulation is not accurate anyways :(
-      rabbit(MyIndex, {State, Size - 1, Age + 1}, RabbitControllerPid);
+      rabbit(MyIndex, {State, Size - 2, Age + 1}, RabbitControllerPid);
+
+    % rabbit is too small to mate
+    {rabbit, {_, _}} -> rabbit(MyIndex, {State, Size - 1, Age + 1}, RabbitControllerPid);
 
     {grass, {Index, Pid}} ->
       io:format("eating ~p~n", [self()]),

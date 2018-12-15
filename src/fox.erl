@@ -58,7 +58,7 @@ start_fox(MyIndex,FoxControllerPid) ->
   receive {registered} -> ok end, %wait for ok from empty field
 %%  io:format("FOX STARTED!~n", []),
   %Todo: maybe adjust random age and size for better simulation results
-  fox(MyIndex, {ready, rand:uniform(15) + 5, rand:uniform(20)}, FoxControllerPid).
+  fox(MyIndex, {ready, rand:uniform(5) + 5, rand:uniform(20)}, FoxControllerPid).
 
 % ============================ fox behavior =================================
 
@@ -80,21 +80,25 @@ fox(MyIndex, {_, 0, _}, FoxControllerPid) ->
 fox(MyIndex, {State, Size, Age}, FoxControllerPid) ->
   timer:sleep(rand:uniform(50) + 450), % TODO wiso genau?
   Rand = rand:uniform(8),
-
   %send underlying empty field that the fox wants to move
   element(2, MyIndex) ! {move, Rand},
   %receive what is currently on the field the fox wants to move to
   receive %Pid is the pid of the desired field, so that the rabbit can register itself on it
     {stop} -> io:format("\e[0;35mTerminating fox ~p~n\e[0;37m", [self()]), ok;
     {grass, {_, _}} -> io:format("Fox: Don't move! ~n"), fox(MyIndex, {State, Size - 1, Age + 1}, FoxControllerPid); %Pid not necessary for fox, since rfox wont move
-  %if adjacent field is occupied by another fox, try to mate (no movement necessary), spawn child on a surrounding empty field (if available)
-    {fox, {Index, Pid}} ->
+
+    % if adjacent field is occupied by another fox, try to mate (no movement necessary), spawn child on a surrounding empty field (if available)
+    {fox, {Index, Pid}} when Size > 8 ->
       io:format("\e[0;35mFoxes trying to mate ~p on field ~p~n\e[0;37m", [self(), MyIndex]),
       %ask empty field if one of the surrounding fields is empty (surrounding field of himself and maybe also of other rabbit)
       element(2, MyIndex) ! {mating},
       %wait for mating to be over before overloading its empty field with new requests
       receive {mating_over} -> ok end,
       %Todo: fast forward age or size, since mating is exhausting :) or not, simulation is not accurate anyways
+      fox(MyIndex, {State, Size - 3, Age + 1}, FoxControllerPid);
+
+    % fox is too small to mate
+    {fox, {Index, Pid}} ->
       fox(MyIndex, {State, Size - 1, Age + 1}, FoxControllerPid);
 
     {rabbit, {Index, Pid}} ->
