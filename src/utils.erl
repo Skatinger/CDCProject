@@ -48,9 +48,7 @@ remove_occupied_field([H | T]) -> [H] ++ remove_occupied_field(T).
 %%       C: Counter (goes from (N-2)*(N-2) to zero)
 %%       R: all grid processes (empty fields and border)
 %%       Acc: Accumulator (will be the resulting list of neighbours)
-init_neighbours(_N, [], 0, _R, Acc) ->
-  %io:format("List of Neighbours: ~p~n", [Acc]),
-  Acc;
+init_neighbours(_N, [], 0, _R, Acc) -> Acc;
 init_neighbours(N, [{Ind, _} | T], C, R, Acc) ->
   Top = [B2 || {B1, B2} <- R, B1 >= Ind - (N + 1), B1 =< Ind - (N - 1)],
   Mid = [B2 || {B1, B2} <- R, B1 >= Ind - 1, B1 =< Ind + 1, B1 /= Ind],
@@ -69,14 +67,6 @@ get_occupying_species(Occupant) -> element(1, Occupant).
 
 get_occupier_pid([]) -> [];
 get_occupier_pid(Occupant) -> element(2, Occupant).
-
-%% TODO change name to something meaningful.. :') OR: remove, since its unused.
-while([]) ->
-  io:format("while ended~n"); %TODO if the while is used, changed this to something else (not an io)
-while([H | T]) ->
-  spawn(?MODULE, empty, [H, []]),
-  while(T).
-
 
 %% picks N fields from given Fields list, without duplicates
 %% returns the picked fields

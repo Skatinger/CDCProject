@@ -348,7 +348,7 @@ iframe {
 window.onload = function () {
 
 
-    // websocket -------------------------------
+    // websocket --------------------------------------
 
       var websocket;
       $(document).ready(init);
@@ -364,6 +364,7 @@ window.onload = function () {
               $("#connected").hide();
               $("#content").hide();
       };
+
       function connect() {
           wsHost = $("#server").val()
           websocket = new WebSocket(wsHost);
@@ -379,6 +380,7 @@ window.onload = function () {
           $(".row").not(".header").remove();
           appendRow("not connected", "not connected");
       };
+
       window.toggle_connection = function(){
           if(websocket.readyState == websocket.OPEN){
               disconnect();
@@ -387,15 +389,23 @@ window.onload = function () {
           };
       };
 
-      window.sendTxt = function() {
-        console.log("sending text in socket function:");
-        console.log($("#send_txt").val());
+      window.sendStop = function() {
+        console.log("sending stop");
           if(websocket.readyState == websocket.OPEN){
-              txt = $("#send_txt").val();
-              websocket.send(txt);
+              websocket.send("stop");
               showScreen('[CLIENT] Sending stop to server.');
           } else {
-               showScreen('websocket is not connected.');
+               showScreenError('websocket is not connected.');
+          };
+      };
+
+      window.sendRestart = function() {
+        console.log("sending restart");
+        if(websocket.readyState == websocket.OPEN){
+              websocket.send("restart");
+              showScreen('[CLIENT] Sending restart to server.');
+          } else {
+               showScreenError('websocket is not connected.');
           };
       };
 
@@ -404,30 +414,34 @@ window.onload = function () {
           $("#connected").fadeIn('slow');
           $("#content").fadeIn('slow');
       };
+
       function onClose(evt) {
           showScreen('<span style="color: red;">DISCONNECTED </span>');
       };
-      function onMessage(evt) {
-          console.log(evt.data);
-          if (evt.data.indexOf("Stopping") >= 0){
-            showScreen('<span style="color: blue;">SERVER RESPONSE:      ' + evt.data+ '</span>');
-          } else {
-            showScreen('<span style="color: blue;">DATA RECEIVED [JSON]:      ' + evt.data+ '</span>');
 
-            json = JSON.parse(evt.data);
-            update_table(json);
-            $(".cell:contains('not connected')").remove();
-            updateChart(json);
-          }
+      function onMessage(evt) {
+        try {
+          json = JSON.parse(evt.data);
+          update_table(json);
+          $(".cell:contains('not connected')").remove();
+          updateChart(json);
+          showScreen('<span style="color: blue;">DATA RECEIVED [JSON]:      ' + evt.data+ '</span>');
+        } catch(e) {
+          //not an actual json, dont update tables
+          showScreen('<span style="color: grey;">SERVER RESPONSE:      ' + evt.data+ '</span>');
+        }
       };
       function onError(evt) {
           showScreen('<span style="color: red;">ERROR: Websocket not connected</span>');
       };
       function showScreen(txt) {
-          $('#output').prepend('<p>' + txt + '</p>');
+        $('#output').prepend('<p>' + txt + '</p>');
       };
+      function showScreenError(txt){
+        $('#output').prepend('<p><b>' + txt + '</b><p>');
+      }
       window.clearScreen = function(){
-          $('#output').html("");
+        $('#output').html("");
       };
 
 
@@ -493,7 +507,15 @@ var options = {
     showInLegend: true,
     name: "Rabbits",
     dataPoints: dataPoints2
-  }]
+  }, {
+    type: "line",
+    xValueType: "dateTime",
+    yValueFormatString: "###",
+    showInLegend: true,
+    name: "Foxes",
+    dataPoints: dataPoints3
+  }
+  ]
 };
 
 var chart = $("#chartContainer").CanvasJSChart(options);
@@ -512,6 +534,7 @@ var updateInterval = 2000;
 // initial value
 var yValue1 = 0;
 var yValue2 = 0;
+var yValue3 = 0;
 
 var time = new Date;
 // starting at 10.00 am
@@ -526,6 +549,9 @@ function updateChart(json) {
     // adding random value and rounding it to two digits. 
     yValue1 = json["grass"]  || 0;//Math.round((yValue1 + deltaY1) * 100) / 100;
     yValue2 = json["rabbit"]  || 0;//Math.round((yValue2 + deltaY2) * 100) / 100;
+    console.log("rabbit:");
+    console.log(json["rabbit"]);
+    yValue3 = json["fox"] || 0;
 
     // pushing the new values
     dataPoints1.push({
@@ -536,11 +562,16 @@ function updateChart(json) {
       x: time.getTime(),
       y: yValue2
     });
+    dataPoints3.push({
+      x: time.getTime(),
+      y: yValue3
+    });
   
 
   // updating legend text with  updated with y Value 
   options.data[0].legendText = "Grass : " + yValue1;
   options.data[1].legendText = "Rabbits : " + yValue2;
+  options.data[2].legendText = "Foxes : " + yValue3;
   $("#chartContainer").CanvasJSChart().render();
 }
 
@@ -587,8 +618,9 @@ function updateChart(json) {
         <h2 class="status-header">Webserver Status</h2>
         <div class="buttons" style="">
           <button class="button" type="button" onclick="toggle_connection()">Connect / Disconnect</button>
-          <button class="button" type="button" onclick="sendTxt();">Stop Simulation</button>
-          <button class="button" id="clear" onclick="clearScreen()">Clear text</button>
+          <button class="button" type="button" onclick="sendStop();">Stop Simulation</button>
+          <button class="button" type="button" onclick="sendRestart();">Restart Simulation</button>
+          <button class="button" id="clear" onclick="clearScreen()">Clear</button>
         </div>
         <div>
         <h3 id="connecting" style="float:left;">

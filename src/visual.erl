@@ -1,12 +1,13 @@
 %%%-------------------------------------------------------------------
 %%% @author alex, jonas
 %%% @doc
-%%% This module is used for all data representation from the simulation. It also collects all info.
+%%% This module is used for all data representation from the simulation. It also collects all info, sending it to
+%%% the websocket if its avaiable.
 %%% @end
 %%% Created : 25. Nov 2018 10:27
 %%%-------------------------------------------------------------------
 -module(visual).
--author("alex").
+-author("alex, jonas").
 
 %% API
 -export([painter/2]).
@@ -14,24 +15,23 @@
 %% ========== visual methods ===============
 
 %% puts species counts and calls the grid-painter
-painter(Grid, ControllerPids) -> %Grid is the same as N in grid.erl
+%% args: Grid: Size of the grid
+%%       ControllerPids: a list of all registered controllers to fetch info from
+painter(Grid, ControllerPids) ->
   SpeciesCounts = get_species_counts(ControllerPids, Grid),
   EfcPid = lists:nth(length(ControllerPids), ControllerPids),
   GridState = get_grid_state(EfcPid),
   io:format("======= INFO ========~n", []),
   io:format("== Current Species Counts: ==~n ~p~n", [SpeciesCounts]),
   paint_grid(GridState, Grid),
-  Webby = whereis(webby),
-  if
-    Webby == undefined -> ok;
-    true -> webby ! {update, jiffy:encode({SpeciesCounts})}
-  end,
+  messaging:inform_websocket(update, jiffy:encode({SpeciesCounts})),
   write_state_to_file(SpeciesCounts),
   receive
     {stop} -> write_results_to_file(SpeciesCounts), io:format("terminating painter~n");
+    % new controllers register with the painter
     {NewControllerPid} -> painter(Grid, [NewControllerPid|ControllerPids])
   after
-    4000 ->  EfcPid ! {testing}, painter(Grid, ControllerPids)
+    1000 ->  EfcPid ! {testing}, painter(Grid, ControllerPids)
   end.
 
 %% ------------------------ private ------------------------------------
