@@ -20,7 +20,7 @@
 painter(Grid, ControllerPids) ->
   SpeciesCounts = get_species_counts(ControllerPids, Grid),
   EfcPid = lists:nth(length(ControllerPids), ControllerPids),
-  GridState = get_grid_state(EfcPid),
+  % GridState = get_grid_state(EfcPid),
   io:format("======= INFO ========~n", []),
   io:format("== Current Species Counts: ==~n ~p~n", [SpeciesCounts]),
   %paint_grid(GridState, Grid),
@@ -31,7 +31,7 @@ painter(Grid, ControllerPids) ->
     % new controllers register with the painter
     {NewControllerPid} -> painter(Grid, [NewControllerPid|ControllerPids])
   after
-    3000 ->  EfcPid ! {testing}, painter(Grid, ControllerPids)
+    1000 ->  EfcPid ! {testing}, painter(Grid, ControllerPids)
   end.
 
 %% ------------------------ private ------------------------------------
