@@ -13,8 +13,6 @@ get it with the following commands:
 `sudo apt-get purge erlang` *uninstalling old version*  
 `sudo apt-get install esl-erlang=1:20.1` *install new version*  
 
-
-
 ## Running the project
 All commands are supposed to be executed in the top level directory of the project.  
 Pay attention that the project folder has the same name as the project.
@@ -26,3 +24,11 @@ Once done, compile the project with `rebar compile`.
 Then you can run it using the script `./run_locally.sh`.
 
 To look at the current simulation state open `localhost:8080` on your browser.
+
+## Customization
+In config/config.json you can change the gridsize. It is read in by the running-script.  
+There is a Makefile included which compiles just the project files without
+dependencies.  
+To just test the server without the simulation you can run `./test_server.sh` This lets you
+examine the interface, but the server will crash when you try to send commands for the
+simulation.
