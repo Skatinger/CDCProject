@@ -21,12 +21,12 @@ To run the project you need to fetch all dependencies first.
 `rebar get-deps` fetches all necessary dependencies.
 Once done, compile the project with `rebar compile`.
 
-Then you can run it using the script `./run_locally.sh`.
+Then you can run it using the script `./run_local.sh`.
 
 To look at the current simulation state open `localhost:8080` on your browser.
 
 ## Customization
-In config/config.json you can change the gridsize. It is read in by the running-script.  
+In the run_local.sh script you can change the size of the simulation in the master:start() call.  
 There is a Makefile included which compiles just the project files without
 dependencies.  
 To just test the server without the simulation you can run `./test_server.sh` This lets you

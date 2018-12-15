@@ -88,7 +88,6 @@ iframe {
   border: none !important;
 }
 
-
 /*//////////////////////////////////////////////////////////////////
 [ Table ]*/
 
@@ -495,21 +494,21 @@ var options = {
   },
   data: [{
     type: "line",
-    xValueType: "dateTime",
+    xValueType: "Integer",
     yValueFormatString: "###",
     showInLegend: true,
     name: "Grass",
     dataPoints: dataPoints1
   }, {
     type: "line",
-    xValueType: "dateTime",
+    xValueType: "Integer",
     yValueFormatString: "###",
     showInLegend: true,
     name: "Rabbits",
     dataPoints: dataPoints2
   }, {
     type: "line",
-    xValueType: "dateTime",
+    xValueType: "Integer",
     yValueFormatString: "###",
     showInLegend: true,
     name: "Foxes",
@@ -537,6 +536,7 @@ var yValue2 = 0;
 var yValue3 = 0;
 
 var time = new Date;
+var counter = 0;
 // starting at 10.00 am
 time.setHours(10);
 time.setMinutes(00);
@@ -544,26 +544,25 @@ time.setSeconds(00);
 time.setMilliseconds(00);
 
 function updateChart(json) {
-    time.setTime(time.getTime() + updateInterval);
-
-    // adding random value and rounding it to two digits. 
-    yValue1 = json["grass"]  || 0;//Math.round((yValue1 + deltaY1) * 100) / 100;
-    yValue2 = json["rabbit"]  || 0;//Math.round((yValue2 + deltaY2) * 100) / 100;
+    //time.setTime(time.getTime() + updateInterval);
+    counter += 1;
+    yValue1 = json["grass"]  || 0;
+    yValue2 = json["rabbit"]  || 0;
     console.log("rabbit:");
     console.log(json["rabbit"]);
     yValue3 = json["fox"] || 0;
 
     // pushing the new values
     dataPoints1.push({
-      x: time.getTime(),
+      x: counter,
       y: yValue1
     });
     dataPoints2.push({
-      x: time.getTime(),
-      y: yValue2
+      x: counter,
+      y: yValue2,
     });
     dataPoints3.push({
-      x: time.getTime(),
+      x: counter,
       y: yValue3
     });
   
