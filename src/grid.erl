@@ -17,10 +17,10 @@
 %%       M: pid of master process
 %%       []: placeholder for a list of all empty field processes (and the spawned controllers)
 emptyFieldController(N, M, []) ->
-  All = lists:seq(1, N * N),                % all empty field processes
-  Right = [Z || Z <- All, Z rem N == 0], % right border processes
-  Left = [Z || Z <- All, Z rem N == 1],  % left border processes
-  Top = [Z || Z <- All, Z =< N],         % top border processes
+  All = lists:seq(1, N * N),               % all empty field processes
+  Right = [Z || Z <- All, Z rem N == 0],   % right border processes
+  Left = [Z || Z <- All, Z rem N == 1],    % left border processes
+  Top = [Z || Z <- All, Z =< N],           % top border processes
   Bottom = [Z || Z <- All, Z > N * N - N], % bottom border processes
   Frame = lists:sort(lists:usort(lists:merge([Top, Bottom, Left, Right]))), %merge lists, remove duplicates and sort it
 
@@ -43,30 +43,27 @@ emptyFieldController(N, M, []) ->
   List_of_Neigh = lists:reverse(utils:init_neighbours(N, Empty_Processes1, (N - 2) * (N - 2), ListOfPids, [])), %initialise a list of all possible neighbours for each process
   [Empty_Field ! {init, lists:nth(utils:get_index(Ind, N, 2 * N, 0), List_of_Neigh)} || {Ind, Empty_Field} <- Empty_Processes1], %send each process its list of neighbours
 
-  % list of all processes spawned by this one, which should be terminated upon receiving stop
-  % Children = List_of_Pids, %  ++ [{N*N + 1, lists:nth(1, ControllerPids)}], %adding first controller Pid (in this case the grass controller)
-
-  % spawn grass controller first TODO spawning 3 grass ATM, should change to param from master
-  GrassControllerPid = spawn(grass, grass_initializer, [self(), 3, Empty_Processes, PainterPid]),
+  % spawn grass controller first TODO spawning 30% grass ATM, should change to param from master
+  GrassControllerPid = spawn(grass, grass_initializer, [self(), round(0.3 * (N-2) * (N-2)), Empty_Processes, PainterPid]),
   Children = ListOfPids ++ [{N * N + 1, GrassControllerPid}],
   % spawn rest of controllers
   initialize_controllers(N, M, Children, PainterPid).
 
 %% starts all controllers, passing the still empty fields to each one, then start emptyFieldController
 %% args: N: Gridsize
-%%       M: TODO wtf isch M
-%%       List_of_Pids: TODO ja das ono gd
+%%       M: Pid of the master process
+%%       List_of_Pids: List of all border {Index, atom}, grid fields {Index, Pid} and controllers {Index, Pid}
 %%       PainterPid: Pid of the painter which collects all current information to display
 initialize_controllers(N, M, ListOfPids, PainterPid) ->
   % receive still empty fields and spawn rabbit controller
   receive
-    {grass, StillEmptyFields} ->                                   % TODO spawning 6 rabbits ATM, change 6 to param from master
-      RabbitControllerPid = spawn(rabbit, rabbit_initializer, [self(), 6, StillEmptyFields, PainterPid]),
+    {grass, StillEmptyFields} ->                                   % TODO spawning 40% rabbits ATM, change 6 to param from master
+      RabbitControllerPid = spawn(rabbit, rabbit_initializer, [self(), round(0.4 * (N-2) * (N-2)), StillEmptyFields, PainterPid]),
       Children = ListOfPids ++ [{N * N + 2, RabbitControllerPid}], %adding second controller Pid (in this case the rabbit controller)
       initialize_controllers(N, M, Children, PainterPid);
   % receiving ready from rabbit initializer, second argument is still empty fields list.
     {rabbit, StillEmptyFields2} ->
-      FoxControllerPid = spawn(fox, fox_initializer, [self(), 3, StillEmptyFields2, PainterPid]),
+      FoxControllerPid = spawn(fox, fox_initializer, [self(), round(0.1 * (N-2) * (N-2)), StillEmptyFields2, PainterPid]),
       Children = ListOfPids ++ [{N * N + 3, FoxControllerPid}], %adding third controller Pid (in this case the fox controller)
       io:format("Children: ~p~n", [Children]),
       initialize_controllers(N, M, Children, PainterPid);
@@ -196,14 +193,14 @@ empty(Index, Neigh, Occupant, EmptyFieldControllerPid) ->
 
     {spawn_rabbit, _, _} when OccupierSpecies /= [] -> empty(Index, Neigh, Occupant, EmptyFieldControllerPid);
     {spawn_rabbit, Rabbit_Controller_Pid, N} ->
-      P = spawn(rabbit, rabbit, [{utils:get_index(Index, N, 2 * N, 0), self()}, {ready, 0, 0}, Rabbit_Controller_Pid]),
+      P = spawn(rabbit, rabbit, [{utils:get_index(Index, N, 2 * N, 0), self()}, {ready, 20, 0}, Rabbit_Controller_Pid]),
       %notify RabbitController of newly spawned rabbit
       Rabbit_Controller_Pid ! {spawned},
       empty(Index, Neigh, {rabbit, P}, EmptyFieldControllerPid);
 
     {spawn_fox, _, _} when OccupierSpecies /= [] -> empty(Index, Neigh, Occupant, EmptyFieldControllerPid);
     {spawn_fox, Fox_Controller_Pid, N} ->
-      P = spawn(fox, fox, [{utils:get_index(Index, N, 2 * N, 0), self()}, {ready, 0, 0}, Fox_Controller_Pid]),
+      P = spawn(fox, fox, [{utils:get_index(Index, N, 2 * N, 0), self()}, {ready, 15, 0}, Fox_Controller_Pid]),
       Fox_Controller_Pid ! {spawned},
       empty(Index, Neigh, {fox, P}, EmptyFieldControllerPid);
 

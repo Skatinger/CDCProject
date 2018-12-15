@@ -15,8 +15,8 @@
 %% ================== behavior methods ===========================
 
 %% simulates the death of a being
-%% args: MyIndex: the index of the dying being
-%%       Species: the species of the dying being
+%% args:      MyIndex: the index of the dying being
+%%            Species: the species of the dying being
 %%       ContollerPid: Pid of the controller controlling the species of the dying being
 die(MyIndex, Species, ControllerPid) ->
   io:format("\033[92mbye bye from ~p ON ~p\e[0;37m~n", [Species, MyIndex]),

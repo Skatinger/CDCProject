@@ -17,7 +17,7 @@
 %%      EmptyFields: list of fields to spawn on
 grass_initializer(GridPid, N, EmptyFields, PainterPid) ->
   % get Index of fields to spawn on %Todo: make sure that not every empty field gets filled with grass -> causes error
-  Random = rand:uniform(N) + 2,
+  Random = N,
   SpawningPlaces = utils:get_spawning_places(Random, EmptyFields), %get indices of a random number of grid cells to spawn grass on
 
   % spawn grasses
@@ -34,9 +34,7 @@ grass_initializer(GridPid, N, EmptyFields, PainterPid) ->
   grass_controller(Random).
 
 %% keeps track of grass count
-%% args:  Master: Pid of Masterprocess
-%%             N: current number of grasses
-%%      Children: Processes spawned by grass_initializer
+%% args:       N: current number of grasses
 grass_controller(N)->
   receive
     {collect_count, PainterPid} ->
@@ -48,7 +46,7 @@ grass_controller(N)->
   end.
 
 %% used to start a grass process. registers grass process with its empty field
-%% args: MyIndex: Index of the grass species on the grid
+%% args:          MyIndex: Index of the grass species on the grid
 %%     GrassControllerPid: Pid of the grasscontroller used for dying (change grass-count)
 start_grass(MyIndex, GrassControllerPid) ->
   Empty_Pid = element(2, MyIndex),
@@ -57,7 +55,7 @@ start_grass(MyIndex, GrassControllerPid) ->
 
 %% grass behavior method
 %% args: MyIndex: own grid number
-%%       Tupe: current state (eating, mating...), size, Age of this grass
+%%       Tuple: current state (eating, mating...), size, Age of this grass %Todo: Bruchmer nid, oder?
 %%       GrassControllerPid: pid of grasscontroller, used for count of grass
 grass(MyIndex, {State, Size, Age}, GrassControllerPid) ->
   %% check if got eaten

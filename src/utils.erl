@@ -36,8 +36,8 @@ get_empty_field(List) ->
   Length = length(List),
   element(2, lists:nth(rand:uniform(Length), List)).
 
-%% removes tuples from a list, which contain a species
-%% args: List of TODO what? :')
+%% removes tuples, which contain a species, from a list and returns a list of empty fields with their PID
+%% args: List of surrounding occupants %TODO: verständlich a so?
 remove_occupied_field([]) -> [];
 remove_occupied_field([{H, _} | T]) when H /= [] -> remove_occupied_field(T);
 remove_occupied_field([H | T]) -> [H] ++ remove_occupied_field(T).
@@ -60,7 +60,6 @@ init_neighbours(N, [{Ind, _} | T], C, R, Acc) ->
 get_index(I, N, Mult, Acc) when I > Mult -> get_index(I, N, Mult + N, Acc + 2);
 get_index(I, N, _Mult, Acc) -> I - (N + 1 + Acc).
 
-%%
 %% returns the occupant of a given field (first element of tuple (second would be his pid) or empty list (meaning no occupant is on this field))
 get_occupying_species([]) -> [];
 get_occupying_species(Occupant) -> element(1, Occupant).
@@ -68,13 +67,13 @@ get_occupying_species(Occupant) -> element(1, Occupant).
 get_occupier_pid([]) -> [];
 get_occupier_pid(Occupant) -> element(2, Occupant).
 
-%% picks N fields from given Fields list, without duplicates
+%% picks N fields from given fields list, without duplicates
 %% returns the picked fields
 get_spawning_places(N, Fields) ->
   pick_n_many(N, Fields, []).
 
 %% recalculates the number of empty fields
-%% returns the adjusted list
+%% returns the adjusted list of all species with their corresponding count
 calculate_emptyNr([{Species, _Count}| T] , N, Total) when Species == empty -> [{Species, N*N - Total}] ++ T;
 calculate_emptyNr([{Species, Count}| T] , N, Total) -> [{Species, Count}] ++ calculate_emptyNr(T, N, Total).
 

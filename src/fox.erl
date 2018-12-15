@@ -15,14 +15,13 @@
 
 %% initializes all fox processes
 %% args: GridPid: pid of grid-process
-%%        Master: pid of master process (maybe unnecessary?)
-%%             N: square root of grid size (maybe unnecessary?)
+%%             N: the number of foxes to spawn
 %%   EmptyFields: list of fields to spawn on
 fox_initializer(GridPid, N, EmptyFields, PainterPid) ->
   % get Index of fields to spawn on
   io:format("StillEMptyFields received in FOX: ~p~n", [EmptyFields]),
 %%  io:format("Length of EmptyFields ~p~n", [EmptyFields]),
-  Number_of_spawned_foxes = 4,
+  Number_of_spawned_foxes = N,
   SpawningPlaces = utils:get_spawning_places(Number_of_spawned_foxes, EmptyFields), %get indices of a random number of grid cells to spawn foxes on
 
   % spawn foxes
@@ -39,9 +38,7 @@ fox_initializer(GridPid, N, EmptyFields, PainterPid) ->
   fox_controller(Number_of_spawned_foxes).
 
 %% keeps track of fox count
-%% args:  Master: Pid of Masterprocess
-%%             N: current number of grasses
-%%      Children: Processes spawned by grass_initializer
+%% args:       N: current number of grasses
 fox_controller(N) ->
   receive
     {collect_count, PainterPid} ->
@@ -53,24 +50,24 @@ fox_controller(N) ->
   end.
 
 %% initializes a fox
-%% args: MyIndex: the index of the field the fox is spawned on
+%% args:          MyIndex: the index of the field the fox is spawned on
 %%       FoxControllerPid: Pid of the controller for the fox species
 start_fox(MyIndex,FoxControllerPid) ->
   Empty_Pid = element(2, MyIndex),
   Empty_Pid ! {fox, self()},
   receive {registered} -> ok end, %wait for ok from empty field
-  io:format("FOX STARTED!~n", []),
-  %Todo: spawn foxes with random Age (otherwise they might die all at the same time)
-  fox(MyIndex, {ready, rand:uniform(15) + 10, 0}, FoxControllerPid).
+%%  io:format("FOX STARTED!~n", []),
+  %Todo: maybe adjust random age and size for better simulation results
+  fox(MyIndex, {ready, rand:uniform(15) + 5, rand:uniform(20)}, FoxControllerPid).
 
 % ============================ fox behavior =================================
 
 %% Simulates the behavior of a fox
 %% args: MyIndex: index on grid
-%%       State:   current state (eating, sleeping etc.)
-%%       Size:    current size of the rabbit
-%%       Age:     age of the rabbit
-fox(MyIndex, {_, _, 10000}, FoxControllerPid) ->
+%%         State: current state (eating, sleeping etc.)
+%%          Size: current size of the rabbit
+%%           Age: age of the rabbit
+fox(MyIndex, {_, _, 40}, FoxControllerPid) ->
   element(2, MyIndex) ! {unregister, fox}, %unregister from old field
   io:format("\e[0;31mFox dying because of age ~n\e[0;37m"),
   common_behavior:die(MyIndex, fox, FoxControllerPid);
@@ -97,7 +94,7 @@ fox(MyIndex, {State, Size, Age}, FoxControllerPid) ->
       element(2, MyIndex) ! {mating},
       %wait for mating to be over before overloading its empty field with new requests
       receive {mating_over} -> ok end,
-      %Todo: fast forward age or size, since mating is exhausting :)
+      %Todo: fast forward age or size, since mating is exhausting :) or not, simulation is not accurate anyways
       fox(MyIndex, {State, Size - 1, Age + 1}, FoxControllerPid);
 
     {rabbit, {Index, Pid}} ->
@@ -107,7 +104,7 @@ fox(MyIndex, {State, Size, Age}, FoxControllerPid) ->
         {occupied} -> fox(MyIndex, {State, Size - 1, Age + 1}, FoxControllerPid); %field is already occupied (happens if two foxes try to register at the same time on the same field)
         {registered} ->
           element(2, MyIndex) ! {unregister, fox}, %unregister from old field
-          fox({Index, Pid}, {State, Size + 5, Age + 1}, FoxControllerPid)
+          fox({Index, Pid}, {State, Size + 3, Age + 1}, FoxControllerPid)
       end;
 
     {[], {Index, Pid}} ->

@@ -6,7 +6,7 @@
 %%% Created : 24. Nov 2018 13:45
 %%%-------------------------------------------------------------------
 -module(rabbit).
--author("alex").
+-author("alex, jonas").
 
 %% API
 -export([rabbit_initializer/4]).
@@ -19,11 +19,11 @@
 %% initializes all rabbit processes
 %% args: GridPid: pid of grid-process
 %%        Master: pid of master process (maybe unnecessary?)
-%%             N: TODO this should be the number of rabbits to spawn
+%%             N: the number of rabbits to spawn
 %%   EmptyFields: list of fields to spawn on
 rabbit_initializer(GridPid, N, EmptyFields, PainterPid) ->
   % get Index of fields to spawn on
-  Number_of_spawned_rabbits = 10,
+  Number_of_spawned_rabbits = N,
   SpawningPlaces = utils:get_spawning_places(Number_of_spawned_rabbits, EmptyFields), %get indices of a random number of grid cells to spawn rabbits on
 
   % spawn rabbits
@@ -40,9 +40,7 @@ rabbit_initializer(GridPid, N, EmptyFields, PainterPid) ->
   rabbit_controller(Number_of_spawned_rabbits).
 
 %% keeps track of rabbit count
-%% args:  Master: Pid of Masterprocess
-%%             N: current number of grasses
-%%      Children: Processes spawned by grass_initializer
+%% args:       N: current number of grasses
 rabbit_controller(N) ->
   receive
     {collect_count, PainterPid} ->
@@ -60,8 +58,8 @@ start_rabbit(MyIndex, RabbitControllerPid) ->
   Empty_Pid = element(2, MyIndex),
   Empty_Pid ! {rabbit, self()},
   receive {registered} -> ok end, %wait for ok from empty field
-  %Todo: spawn rabbits with random Age (otherwise they might die all at the same time)
-  rabbit(MyIndex, {ready, rand:uniform(15) + 5, 0}, RabbitControllerPid).
+  %Todo: maybe adjust random age and size for better simulation results
+  rabbit(MyIndex, {ready, rand:uniform(15) + 25, rand:uniform(20)}, RabbitControllerPid).
 
 % ============================ rabbit behavior =================================
 %% Simulates the behavior of a rabbit
@@ -69,7 +67,7 @@ start_rabbit(MyIndex, RabbitControllerPid) ->
 %%       State:   current state (eating, sleeping etc.(
 %%       Size:    current size of the rabbit
 %%       Age:     age of the rabbit
-rabbit(MyIndex, {_, _, 10000}, RabbitControllerPid) ->
+rabbit(MyIndex, {_, _, 50}, RabbitControllerPid) ->
   element(2, MyIndex) ! {unregister, rabbit}, % unregister from old field
   io:format("\e[0;31mdying because of age ~n\e[0;37m"),
   common_behavior:die(MyIndex, rabbit, RabbitControllerPid);
@@ -103,7 +101,7 @@ rabbit(MyIndex, {State, Size, Age}, RabbitControllerPid) ->
       element(2, MyIndex) ! {mating},
       % wait for mating to be over before overloading its empty field with new requests
       receive {mating_over} -> ok end,
-      %Todo: fast forward age or size, since mating is exhausting :)
+      %Todo: fast forward age or size, since mating is exhausting :) or not, simulation is not accurate anyways :(
       rabbit(MyIndex, {State, Size - 1, Age + 1}, RabbitControllerPid);
 
     {grass, {Index, Pid}} ->
@@ -113,7 +111,7 @@ rabbit(MyIndex, {State, Size, Age}, RabbitControllerPid) ->
         {occupied} -> rabbit(MyIndex, {State, Size - 1, Age + 1}, RabbitControllerPid); %field is already occupied (happens if zwo rabbits try to register at the same time on the same field)
         {registered} ->
           element(2, MyIndex) ! {unregister, rabbit}, %unregister from old field
-          rabbit({Index, Pid}, {State, Size + 5, Age + 1}, RabbitControllerPid)
+          rabbit({Index, Pid}, {State, Size + 20, Age + 1}, RabbitControllerPid)
       end;
 
     % ---- empty field detected ------
