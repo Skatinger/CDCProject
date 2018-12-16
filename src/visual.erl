@@ -66,8 +66,8 @@ get_grid_state(EfcPid) ->
 
 %% writes current species counts to a file for evaluation
 write_state_to_file(SpeciesCounts) ->
-  file:write_file("../simulation_results.txt", io_lib:fwrite("~p~n", [SpeciesCounts]), [append]).
+  file:write_file("simulation_results.txt", io_lib:fwrite("~p~n", [SpeciesCounts]), [append]).
 
 %% writes the final state to a file
 write_results_to_file(SpeciesCounts) ->
-  file:write_file("../simulation_results.txt", io_lib:fwrite("Final species counts: ~p~n", [SpeciesCounts]), [append]).
+  file:write_file("simulation_results.txt", io_lib:fwrite("Final species counts: ~p~n", [SpeciesCounts]), [append]).
