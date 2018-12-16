@@ -23,7 +23,8 @@ Once done, compile the project with `rebar compile`.
 
 Then you can run it using the script `./run_local.sh`.
 
-To look at the current simulation state open `localhost:8080` on your browser.
+To look at the current simulation state open `localhost:8080` on your browser.  
+Results can also be examined as CSV. The simulation writes all changes to the file simulation_results.txt. A ruby script for the conversion to CSV-format is provided (txt2csv.rb). For this to work ruby has to be installed.
 
 ## Customization
 In the run_local.sh script you can change the size of the simulation in the master:start() call.  
