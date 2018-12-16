@@ -1,12 +1,12 @@
 %%%-------------------------------------------------------------------
-%%% @author alex
+%%% @author alex, jonas
 %%% @doc
 %%%
 %%% @end
 %%% Created : 24. Nov 2018 13:46
 %%%-------------------------------------------------------------------
 -module(messaging).
--author("alex").
+-author("alex, jonas").
 
 %% API
 -export([register_self_to_painter/2]).
@@ -21,18 +21,3 @@ inform_websocket(Atom, Msg) ->
     Webby == undefined -> ok;
     true -> webby ! {Atom, Msg}
   end.
-
-
-%%pass_field_info({MyPid, Species, State, Size, Age}) ->
-%%  receive
-%%    stop ->
-%%      ok;
-%%    {collect_info, Info} ->
-%%      % append my info and pass info to follower
-%%      NewInfo = [{MyPid, Species, State, Size, Age} | Info],
-%%      io:format("should now send infos forward~n", []),
-%%      (MyPid + 1) ! NewInfo
-%%  %no message received
-%%  after
-%%    5 -> ok
-%%  end.

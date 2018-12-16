@@ -21,7 +21,7 @@ painter(Grid, ControllerPids) ->
   SpeciesCounts = get_species_counts(ControllerPids, Grid),
   EfcPid = lists:nth(length(ControllerPids), ControllerPids),
   % GridState = get_grid_state(EfcPid),
-  io:format("======= INFO ========~n", []),
+  io:format("\033[92m======= INFO ========~n\e[0;37m", []),
   io:format("== Current Species Counts: ==~n ~p~n", [SpeciesCounts]),
   %paint_grid(GridState, Grid),
   messaging:inform_websocket(update, jiffy:encode({SpeciesCounts})),

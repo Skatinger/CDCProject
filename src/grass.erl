@@ -13,25 +13,24 @@
 
 %% initializes all grass processes
 %% args: GridPid: pid of grid-process
-%%        Master: pid of master process (maybe unecessary?)
-%%      EmptyFields: list of fields to spawn on
+%%             N: number of grass processes to spawn
+%%   EmptyFields: list of fields to spawn on
+%%    PainterPid: the PID of the painter process
 grass_initializer(GridPid, N, EmptyFields, PainterPid) ->
-  % get Index of fields to spawn on %Todo: make sure that not every empty field gets filled with grass -> causes error
-  Random = N,
-  SpawningPlaces = utils:get_spawning_places(Random, EmptyFields), %get indices of a random number of grid cells to spawn grass on
+  % get Index of fields to spawn on
+  SpawningPlaces = utils:get_spawning_places(N, EmptyFields), %get indices of a N grid cells to spawn grass on
 
   % spawn grasses
   [spawn(?MODULE, start_grass, [Index, self()]) || (Index) <- SpawningPlaces],
 
   % send still empty fields back to grid
-  io:format("\e[0;32mSpawning places ~p~n \e[0;37m", [SpawningPlaces]),
   StillEmptyFields = [Element || Element <- EmptyFields, not(lists:member(Element,SpawningPlaces))],
   GridPid ! {grass, StillEmptyFields},
 
   % register this controller at the painter
   messaging:register_self_to_painter(self(), PainterPid),
   % start controller
-  grass_controller(Random).
+  grass_controller(N).
 
 %% keeps track of grass count
 %% args:       N: current number of grasses
@@ -55,9 +54,9 @@ start_grass(MyIndex, GrassControllerPid) ->
 
 %% grass behavior method
 %% args: MyIndex: own grid number
-%%       Tuple: current state (eating, mating...), size, Age of this grass %Todo: Bruchmer nid, oder?
+%%       Tuple: current state (eating, mating...), size, Age of this grass
 %%       GrassControllerPid: pid of grasscontroller, used for count of grass
-grass(MyIndex, {State, Size, Age}, GrassControllerPid) ->
+grass(MyIndex, {_State, _Size, _Age}, GrassControllerPid) ->
   %% check if got eaten
   receive
     {eaten} -> common_behavior:die(MyIndex, grass, GrassControllerPid)

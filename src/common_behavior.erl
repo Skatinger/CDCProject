@@ -1,5 +1,5 @@
 %%%-------------------------------------------------------------------
-%%% @author alex
+%%% @author alex, jonas
 %%% @doc
 %%% Behavior for the simulation shared among species is contained in this module
 %%% @end
@@ -9,8 +9,7 @@
 -author("alex, jonas").
 
 %% API
--export([die/3]).
--export([sleep/0]).
+-export([die/3, sleep/0]).
 
 %% ================== behavior methods ===========================
 
@@ -18,8 +17,7 @@
 %% args:      MyIndex: the index of the dying being
 %%            Species: the species of the dying being
 %%       ContollerPid: Pid of the controller controlling the species of the dying being
-die(MyIndex, Species, ControllerPid) ->
-  io:format("\033[92mbye bye from ~p ON ~p\e[0;37m~n", [Species, MyIndex]),
+die(_MyIndex, _Species, ControllerPid) ->
   % inform controller of death
   ControllerPid ! {died},
   exit(0).

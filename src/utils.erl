@@ -37,7 +37,7 @@ get_empty_field(List) ->
   element(2, lists:nth(rand:uniform(Length), List)).
 
 %% removes tuples, which contain a species, from a list and returns a list of empty fields with their PID
-%% args: List of surrounding occupants %TODO: verständlich a so?
+%% args: List of surrounding occupants
 remove_occupied_field([]) -> [];
 remove_occupied_field([{H, _} | T]) when H /= [] -> remove_occupied_field(T);
 remove_occupied_field([H | T]) -> [H] ++ remove_occupied_field(T).
@@ -86,7 +86,7 @@ get_total_occupants([{_, _} | T ]) -> get_total_occupants(T).
 %%%--------------------------- private ------------------------------
 
 %% picks N elments form a given list
-%% args: N:    number of elements to pick
+%% args:    N: number of elements to pick
 %%       List: List to pick from
 %% returns Result as list of N elements
 pick_n_many(0, _, Result) ->
