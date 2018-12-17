@@ -43,7 +43,7 @@ emptyFieldController(N, M, []) ->
   [Empty_Field ! {init, lists:nth(utils:get_index(Ind, N, 2 * N, 0), List_of_Neigh)} || {Ind, Empty_Field} <- Empty_Processes1], %send each process its list of neighbours
 
   % spawn grass controller first
-  GrassControllerPid = spawn(grass, grass_initializer, [self(), round(0.3 * (N-2) * (N-2)), Empty_Processes, PainterPid]),
+  GrassControllerPid = spawn(grass, grass_initializer, [self(), round(0.3 * (N - 2) * (N - 2)), Empty_Processes, PainterPid]),
   Children = ListOfPids ++ [{N * N + 1, GrassControllerPid}],
   % spawn rest of controllers
   initialize_controllers(N, M, Children, PainterPid).
@@ -57,12 +57,12 @@ initialize_controllers(N, M, ListOfPids, PainterPid) ->
   % receive still empty fields and spawn rabbit controller
   receive
     {grass, StillEmptyFields} ->
-      RabbitControllerPid = spawn(rabbit, rabbit_initializer, [self(), round(0.4 * (N-2) * (N-2)), StillEmptyFields, PainterPid]),
+      RabbitControllerPid = spawn(rabbit, rabbit_initializer, [self(), round(0.4 * (N - 2) * (N - 2)), StillEmptyFields, PainterPid]),
       Children = ListOfPids ++ [{N * N + 2, RabbitControllerPid}], %adding second controller Pid (in this case the rabbit controller)
       initialize_controllers(N, M, Children, PainterPid);
   % receiving ready from rabbit initializer, second argument is still empty fields list.
     {rabbit, StillEmptyFields2} ->
-      FoxControllerPid = spawn(fox, fox_initializer, [self(), round(0.1 * (N-2) * (N-2)), StillEmptyFields2, PainterPid]),
+      FoxControllerPid = spawn(fox, fox_initializer, [self(), round(0.1 * (N - 2) * (N - 2)), StillEmptyFields2, PainterPid]),
       Children = ListOfPids ++ [{N * N + 3, FoxControllerPid}], %adding third controller Pid (in this case the fox controller)
       initialize_controllers(N, M, Children, PainterPid);
     {fox, _} ->
@@ -76,8 +76,8 @@ initialize_controllers(N, M, ListOfPids, PainterPid) ->
 emptyFieldController(N, M, All, PainterPid) ->
   %This is the controller that is used after all the empty processes have been instantiated
   receive
-    % ------ handling spawn requests ---------
-    % empty fields trying to spawn grass on itself
+  % ------ handling spawn requests ---------
+  % empty fields trying to spawn grass on itself
     {spawn, Index} -> element(2, Index) ! {gc, lists:nth(N * N + 1, All), N},
       emptyFieldController(N, M, All, PainterPid);
 
@@ -87,15 +87,15 @@ emptyFieldController(N, M, All, PainterPid) ->
     {spawn_fox, {_, Pid}} -> Pid ! {fc, lists:nth(N * N + 3, All), N},
       emptyFieldController(N, M, All, PainterPid);
 
-    % ------ keep track of species count ------
+  % ------ keep track of species count ------
     {collect_count, Pid} -> Pid ! {empty, N * N}, emptyFieldController(N, M, All, PainterPid);
 
-    % ----- serve information to painter upon request -----
+  % ----- serve information to painter upon request -----
     {collect_info, Pid} ->
       element(2, lists:nth(N + 2, All)) ! {collect_info, N, self(), Pid, []},
       emptyFieldController(N, M, All, PainterPid);
 
-    % ---- simulation stop requested, send stop to all grid processes --------
+  % ---- simulation stop requested, send stop to all grid processes --------
     {stop} ->
       [P ! {stop} || {_, P} <- utils:get_processes(All)],
       io:format("emptyController terminating, sending to all grid processes~n"),
@@ -265,7 +265,10 @@ empty(Index, Neigh, Occupant, EmptyFieldControllerPid) ->
       empty(Index, Neigh, Occupant, EmptyFieldControllerPid);
 
   % --------- handle unexpected messages ---------------------------
-    M -> ok, io:format("\e[0;39m---------This message will be ignored: ~p, process: ~p, occupant: ~p----~n\e[0;37m", [M, self(), Occupant]),
+    M when Occupant /= [] -> ok,
+      io:format("\e[0;39m---------This message will be ignored: ~p, process: ~p, occupant: ~p----~n\e[0;37m", [M, self(), Occupant]),
+      empty(Index, Neigh, Occupant, EmptyFieldControllerPid); %handling unexpected messages
+    M -> ok,
       empty(Index, Neigh, Occupant, EmptyFieldControllerPid) %handling unexpected messages
 
   % ================== main message loop end ====================================
@@ -283,5 +286,5 @@ empty(Index, Neigh, Occupant, EmptyFieldControllerPid) ->
   % restart process
   empty(Index, Neigh, Occupant, EmptyFieldControllerPid).
 
-break()->
+break() ->
   io:format("").
