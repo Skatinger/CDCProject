@@ -14,8 +14,9 @@
 -export([websocket_info/2]).
 
 %% upgrades http/1.1 to websocket
-init(Req, Opts) ->
-  {cowboy_websocket, Req, Opts}.
+init(Req, _) ->
+  Options = #{idle_timeout => infinity},
+  {cowboy_websocket, Req, Options}.
 
 %% initializes websocket connection, registering self
 websocket_init(State) ->

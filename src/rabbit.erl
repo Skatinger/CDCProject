@@ -65,7 +65,7 @@ start_rabbit(MyIndex, RabbitControllerPid) ->
 %%       State:   current state (eating, sleeping etc.(
 %%       Size:    current size of the rabbit
 %%       Age:     age of the rabbit
-rabbit(MyIndex, {_, _, 50}, RabbitControllerPid) ->
+rabbit(MyIndex, {_, _, 45}, RabbitControllerPid) ->
   element(2, MyIndex) ! {unregister, rabbit}, % unregister from old field
   common_behavior:die(MyIndex, rabbit, RabbitControllerPid);
 
@@ -91,7 +91,7 @@ rabbit(MyIndex, {State, Size, Age}, RabbitControllerPid) ->
     {fox, {_, _}} -> rabbit(MyIndex, {State, Size - 1, Age + 1}, RabbitControllerPid);
 
   % if adjacent field is occupied by another rabbit, try to mate (no movement necessary), spawn child on a surrounding empty field (if available)
-    {rabbit, {_, _}} when Size > 3 ->
+    {rabbit, {_, _}} when Size > 1 ->
       % ask empty field if one of the surrounding fields is empty (surrounding field of himself and maybe also of other rabbit
       element(2, MyIndex) ! {mating},
       % wait for mating to be over before overloading its empty field with new requests

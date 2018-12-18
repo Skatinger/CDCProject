@@ -43,7 +43,7 @@ emptyFieldController(N, M, []) ->
   [Empty_Field ! {init, lists:nth(utils:get_index(Ind, N, 2 * N, 0), List_of_Neigh)} || {Ind, Empty_Field} <- Empty_Processes1], %send each process its list of neighbours
 
   % spawn grass controller first
-  GrassControllerPid = spawn(grass, grass_initializer, [self(), round(0.3 * (N - 2) * (N - 2)), Empty_Processes, PainterPid]),
+  GrassControllerPid = spawn(grass, grass_initializer, [self(), round(0.36 * (N - 2) * (N - 2)), Empty_Processes, PainterPid]),
   Children = ListOfPids ++ [{N * N + 1, GrassControllerPid}],
   % spawn rest of controllers
   initialize_controllers(N, M, Children, PainterPid).
@@ -57,12 +57,12 @@ initialize_controllers(N, M, ListOfPids, PainterPid) ->
   % receive still empty fields and spawn rabbit controller
   receive
     {grass, StillEmptyFields} ->
-      RabbitControllerPid = spawn(rabbit, rabbit_initializer, [self(), round(0.4 * (N - 2) * (N - 2)), StillEmptyFields, PainterPid]),
+      RabbitControllerPid = spawn(rabbit, rabbit_initializer, [self(), round(0.48 * (N - 2) * (N - 2)), StillEmptyFields, PainterPid]),
       Children = ListOfPids ++ [{N * N + 2, RabbitControllerPid}], %adding second controller Pid (in this case the rabbit controller)
       initialize_controllers(N, M, Children, PainterPid);
   % receiving ready from rabbit initializer, second argument is still empty fields list.
     {rabbit, StillEmptyFields2} ->
-      FoxControllerPid = spawn(fox, fox_initializer, [self(), round(0.1 * (N - 2) * (N - 2)), StillEmptyFields2, PainterPid]),
+      FoxControllerPid = spawn(fox, fox_initializer, [self(), round(0.14 * (N - 2) * (N - 2)), StillEmptyFields2, PainterPid]),
       Children = ListOfPids ++ [{N * N + 3, FoxControllerPid}], %adding third controller Pid (in this case the fox controller)
       initialize_controllers(N, M, Children, PainterPid);
     {fox, _} ->

@@ -7,4 +7,4 @@
 #FOX_COUNT=($(jq -r '.foxcount' config/config.json))
 
 
-erl -pa ebin deps/**/ebin -eval "master:start(7)." -eval "init:stop()"
+erl -pa ebin deps/**/ebin -eval "master:start(15)." -eval "init:stop()"

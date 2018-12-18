@@ -46,7 +46,7 @@ simulate(N) ->
     {<<"restart">>} -> restart([EfcPid, PainterPid], N)
   % automatic timeout
   after
-    100000 ->
+    500000 ->
       ok
   end,
   messaging:inform_websocket(update, "[AUTOMATIC TIMEOUT]"),

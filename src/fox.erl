@@ -62,7 +62,7 @@ start_fox(MyIndex,FoxControllerPid) ->
 %%         State: current state (eating, sleeping etc.)
 %%          Size: current size of the rabbit
 %%           Age: age of the rabbit
-fox(MyIndex, {_, _, 40}, FoxControllerPid) ->
+fox(MyIndex, {_, _, 25}, FoxControllerPid) ->
   element(2, MyIndex) ! {unregister, fox}, %unregister from old field
   common_behavior:die(MyIndex, fox, FoxControllerPid);
 
@@ -81,12 +81,12 @@ fox(MyIndex, {State, Size, Age}, FoxControllerPid) ->
     {grass, {_, _}} ->  fox(MyIndex, {State, Size - 1, Age + 1}, FoxControllerPid); %Pid not necessary for fox, since fox wont move
 
     % if adjacent field is occupied by another fox, try to mate (no movement necessary), spawn child on a surrounding empty field (if available)
-    {fox, {_Index, _Pid}} when Size > 8 ->
+    {fox, {_Index, _Pid}} when Size > 10 ->
       %ask empty field if one of the surrounding fields is empty (surrounding field of himself and maybe also of other rabbit)
       element(2, MyIndex) ! {mating},
       %wait for mating to be over before overloading its empty field with new requests
       receive {mating_over} -> ok end,
-      fox(MyIndex, {State, Size - 3, Age + 1}, FoxControllerPid);
+      fox(MyIndex, {State, Size - 5, Age + 1}, FoxControllerPid);
 
     % fox is too small to mate
     {fox, {_Index, _Pid}} ->
