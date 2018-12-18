@@ -35,4 +35,4 @@ examine the interface, but the server will crash when you try to send commands f
 simulation.
 
 ### Client example image
-![alt text](https://imgur.com/a/es8SYwZ)
+![example](https://i.imgur.com/3CSMrTN.png)
