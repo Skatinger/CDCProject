@@ -33,3 +33,6 @@ dependencies.
 To just test the server without the simulation you can run `./test_server.sh` This lets you
 examine the interface, but the server will crash when you try to send commands for the
 simulation.
+
+### Client example image
+![alt text](https://imgur.com/a/es8SYwZ)
